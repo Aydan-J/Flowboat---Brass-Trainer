@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrassTrainer — Progress</title>
+  <meta name="description" content="Track your brass practice history and total time with BrassTrainer." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">🎺</span>
+      Brass<span>Trainer</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="practice.html">🎵 Practice</a></li>
+      <li><a href="progress.html" class="active">📈 Progress</a></li>
+      <li><a href="feedback.html">📝 Notes</a></li>
+      <li><a href="pitch.html">🎯 Pitch</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="section-header">
+      <h2>📈 Practice Progress</h2>
+      <p>Your session history and accumulated practice time.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotalTime">0m</div>
+        <div class="stat-label">Total Practice Time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statSessions">0</div>
+        <div class="stat-label">Sessions Logged</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statStreak">0</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statFavorite">—</div>
+        <div class="stat-label">Top Exercise</div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.1rem;">
+        <div class="card-title" style="margin-bottom:0;">📋 Session Log</div>
+        <button class="btn btn-danger btn-sm" onclick="clearLog()">🗑 Clear All</button>
+      </div>
+      <div id="logContainer"></div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    Made with <span>♥</span> for brass musicians · BrassTrainer
+  </footer>
+
+  <div class="toast" id="toast"></div>
+  <script src="js/progress.js"></script>
+</body>
+</html>

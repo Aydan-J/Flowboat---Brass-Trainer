@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrassTrainer — Pitch Detector</title>
+  <meta name="description" content="Practice playing the right notes with BrassTrainer's real-time pitch detector." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">🎺</span>
+      Brass<span>Trainer</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="practice.html">🎵 Practice</a></li>
+      <li><a href="progress.html">📈 Progress</a></li>
+      <li><a href="feedback.html">📝 Notes</a></li>
+      <li><a href="pitch.html" class="active">🎯 Pitch</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <!-- file:// warning banner (shown by JS if needed) -->
+    <div id="fileProtocolWarn" style="
+      display: none;
+      margin-bottom: 1.25rem;
+      padding: 1rem 1.25rem;
+      background: rgba(224, 82, 82, 0.1);
+      border: 1px solid rgba(224, 82, 82, 0.35);
+      border-radius: var(--radius-sm);
+      color: var(--danger);
+      font-size: 0.875rem;
+      line-height: 1.6;
+    ">
+      <strong>🚫 Microphone blocked</strong> — Your browser disallows mic access on <code>file://</code> URLs.<br/>
+      <strong>Fix:</strong> Open this file using <strong>VS Code Live Server</strong>:<br/>
+      Right-click <code>index.html</code> in the VS Code Explorer → <em>"Open with Live Server"</em>.
+      The page will open as <code>http://localhost:5500</code> where mic access works.
+    </div>
+
+    <div class="section-header">
+      <h2>🎯 Pitch Detector</h2>
+      <p>Select a target note, start your mic, and play. The app will tell you if you nailed it.</p>
+    </div>
+
+    <!-- CONFIG ROW -->
+    <div class="pitch-config">
+      <div class="config-group">
+        <label class="config-label" for="instrumentSelect">🎺 Instrument</label>
+        <select id="instrumentSelect" class="pitch-select" onchange="updateTransposition()">
+          <option value="0">Trombone / Tuba / Baritone (Concert Pitch)</option>
+          <option value="-2" selected>Trumpet / Cornet (Bb — sounds a step down)</option>
+          <option value="-7">French Horn (F — sounds a 5th down)</option>
+          <option value="-9">Alto Saxophone (Eb)</option>
+        </select>
+      </div>
+      <div class="config-group">
+        <label class="config-label" for="targetNoteSelect">🎵 Target Note <span class="concert-badge" id="concertLabel"></span></label>
+        <select id="targetNoteSelect" class="pitch-select" onchange="updateTargetNote()">
+          <!-- Filled by JS -->
+        </select>
+      </div>
+    </div>
+
+    <!-- MAIN DETECTOR LAYOUT -->
+    <div class="pitch-layout">
+
+      <!-- INDICATOR ORBS -->
+      <div class="pitch-center">
+        <div class="pitch-orb" id="pitchOrb">
+          <div class="orb-inner">
+            <div class="orb-note" id="orbNote">—</div>
+            <div class="orb-status" id="orbStatus">Press Start</div>
+          </div>
+        </div>
+
+        <!-- TUNING METER -->
+        <div class="tuning-bar-wrap">
+          <div class="tuning-labels">
+            <span>♭ Flat</span>
+            <span>In Tune</span>
+            <span>Sharp ♯</span>
+          </div>
+          <div class="tuning-bar" id="tuningBar">
+            <div class="tuning-center-line"></div>
+            <div class="tuning-needle" id="tuningNeedle"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDE PANEL -->
+      <div class="pitch-sidebar">
+
+        <!-- Controls -->
+        <div class="card">
+          <div class="card-title">🎙️ Microphone</div>
+          <button class="btn btn-primary" id="micBtn" onclick="toggleMic()" style="width:100%; margin-bottom:0.75rem;">
+            🎙️ Start Listening
+          </button>
+          <div class="mic-status" id="micStatus">
+            <span class="mic-dot" id="micDot"></span>
+            <span id="micStatusText">Microphone off</span>
+          </div>
+          <div style="margin-top:0.75rem; font-size:0.78rem; color:var(--text-muted); line-height:1.5;">
+            Your audio never leaves your device. All processing happens locally in the browser.
+          </div>
+        </div>
+
+        <!-- Score -->
+        <div class="card">
+          <div class="card-title">🏆 Score</div>
+          <div class="score-grid">
+            <div class="score-item">
+              <div class="score-val" id="scoreCorrect">0</div>
+              <div class="score-lbl">✅ Correct</div>
+            </div>
+            <div class="score-item">
+              <div class="score-val" id="scoreClose">0</div>
+              <div class="score-lbl">🎯 Close</div>
+            </div>
+            <div class="score-item">
+              <div class="score-val" id="scoreWrong">0</div>
+              <div class="score-lbl">❌ Wrong</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:1rem;" onclick="resetScore()">Reset Score</button>
+        </div>
+
+        <!-- Live Frequency -->
+        <div class="card">
+          <div class="card-title">📡 Live Reading</div>
+          <div class="live-reading">
+            <div class="reading-row">
+              <span class="reading-label">Detected</span>
+              <span class="reading-value" id="liveNote">—</span>
+            </div>
+            <div class="reading-row">
+              <span class="reading-label">Frequency</span>
+              <span class="reading-value" id="liveFreq">—</span>
+            </div>
+            <div class="reading-row">
+              <span class="reading-label">Target</span>
+              <span class="reading-value" id="liveTarget">—</span>
+            </div>
+            <div class="reading-row">
+              <span class="reading-label">Cents Off</span>
+              <span class="reading-value" id="liveCents">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- How to Use -->
+        <div class="card">
+          <div class="card-title">💡 How It Works</div>
+          <ol class="how-list">
+            <li>Select your <strong>instrument</strong> and a <strong>target note</strong>.</li>
+            <li>Click <strong>Start Listening</strong> and allow mic access.</li>
+            <li>Play the note on your instrument.</li>
+            <li>🟢 <strong>Green</strong> = correct · 🟡 <strong>Yellow</strong> = close · 🔴 <strong>Red</strong> = wrong partial</li>
+          </ol>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    Made with <span>♥</span> for brass musicians · BrassTrainer
+  </footer>
+
+  <div class="toast" id="toast"></div>
+  <script src="js/pitch.js"></script>
+</body>
+</html>

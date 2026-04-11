@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrassTrainer — Notes</title>
+  <meta name="description" content="Write practice notes and feedback after each brass instrument session." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">🎺</span>
+      Brass<span>Trainer</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="practice.html">🎵 Practice</a></li>
+      <li><a href="progress.html">📈 Progress</a></li>
+      <li><a href="feedback.html" class="active">📝 Notes</a></li>
+      <li><a href="pitch.html">🎯 Pitch</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="section-header">
+      <h2>📝 Practice Notes</h2>
+      <p>Reflect on each session — note what clicked, what needs work, and what to focus on next time.</p>
+    </div>
+
+    <div class="practice-grid">
+
+      <!-- FORM -->
+      <div class="card">
+        <div class="card-title">✏️ Add a Note</div>
+        <div class="feedback-form">
+          <div class="form-group">
+            <label for="noteExercise">Exercise</label>
+            <select id="noteExercise"></select>
+          </div>
+          <div class="form-group">
+            <label>Session Feel</label>
+            <div class="rating-group" id="ratingGroup">
+              <button class="rating-btn" onclick="setRating(1)" data-r="1" title="Rough">😓</button>
+              <button class="rating-btn" onclick="setRating(2)" data-r="2" title="Okay">😐</button>
+              <button class="rating-btn" onclick="setRating(3)" data-r="3" title="Good">🙂</button>
+              <button class="rating-btn" onclick="setRating(4)" data-r="4" title="Great">😄</button>
+              <button class="rating-btn" onclick="setRating(5)" data-r="5" title="Excellent">🔥</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="noteText">What did you work on? What needs improvement?</label>
+            <textarea
+              id="noteText"
+              placeholder="e.g. Long tones felt steady. Need to work on upper register lip slurs..."
+            ></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="saveNote()">💾 Save Note</button>
+        </div>
+      </div>
+
+      <!-- NOTES LIST -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.1rem;">
+          <div class="card-title" style="margin-bottom:0;">📚 Saved Notes</div>
+          <button class="btn btn-danger btn-sm" onclick="clearNotes()">🗑 Clear All</button>
+        </div>
+        <div id="notesContainer"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    Made with <span>♥</span> for brass musicians · BrassTrainer
+  </footer>
+
+  <div class="toast" id="toast"></div>
+  <script src="js/feedback.js"></script>
+</body>
+</html>

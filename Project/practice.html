@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrassTrainer — Practice</title>
+  <meta name="description" content="Practice with a timer, metronome, and exercise library on BrassTrainer." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">🎺</span>
+      Brass<span>Trainer</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="practice.html" class="active">🎵 Practice</a></li>
+      <li><a href="progress.html">📈 Progress</a></li>
+      <li><a href="feedback.html">📝 Notes</a></li>
+      <li><a href="pitch.html">🎯 Pitch</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="section-header">
+      <h2>🎵 Practice Session</h2>
+      <p>Select an exercise, set your tempo, and start the timer.</p>
+    </div>
+
+    <div class="practice-grid">
+
+      <!-- TIMER -->
+      <div class="card">
+        <div class="card-title">⏱️ Session Timer</div>
+        <div class="timer-display" id="timerDisplay">00:00</div>
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="timerStartBtn" onclick="timerToggle()">▶ Start</button>
+          <button class="btn btn-secondary" onclick="timerReset()">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- METRONOME -->
+      <div class="card">
+        <div class="card-title">🥁 Metronome</div>
+        <div class="bpm-display" id="bpmDisplay">100</div>
+        <div class="bpm-label">BPM</div>
+        <input
+          type="range"
+          class="bpm-slider"
+          id="bpmSlider"
+          min="40" max="208" value="100"
+          oninput="bpmChange(this.value)"
+        />
+        <div class="bpm-presets">
+          <button class="bpm-preset-btn" onclick="setPreset(60, this)">Largo<br/>60</button>
+          <button class="bpm-preset-btn" onclick="setPreset(80, this)">Andante<br/>80</button>
+          <button class="bpm-preset-btn" onclick="setPreset(100, this)">Moderato<br/>100</button>
+          <button class="bpm-preset-btn" onclick="setPreset(120, this)">Allegro<br/>120</button>
+          <button class="bpm-preset-btn" onclick="setPreset(160, this)">Presto<br/>160</button>
+        </div>
+        <div class="metronome-beat" id="beatDots">
+          <div class="beat-dot" id="dot0"></div>
+          <div class="beat-dot" id="dot1"></div>
+          <div class="beat-dot" id="dot2"></div>
+          <div class="beat-dot" id="dot3"></div>
+        </div>
+        <div style="margin-top:1rem; display:flex; gap:0.75rem; justify-content:center;">
+          <button class="btn btn-primary btn-sm" id="metroStartBtn" onclick="metronomeToggle()">▶ Start</button>
+          <button class="btn btn-secondary btn-sm" onclick="metronomeStop()">■ Stop</button>
+        </div>
+      </div>
+
+      <!-- EXERCISES -->
+      <div class="card full-width">
+        <div class="card-title">📋 Exercise Library</div>
+        <div id="selectedExercise" style="margin-bottom:0.85rem; padding:0.65rem 0.9rem; border-radius:var(--radius-sm); background:var(--accent-glow); border:1px solid rgba(245,166,35,0.25); font-size:0.85rem; color:var(--accent); font-weight:600; display:none;">
+          ✅ Selected: <span id="selectedName"></span>
+        </div>
+        <div class="exercise-list" id="exerciseList"></div>
+        <div style="margin-top:1.25rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+          <button class="btn btn-primary" id="logSessionBtn" onclick="logSession()">💾 Save Session</button>
+          <a href="feedback.html" class="btn btn-secondary">📝 Add Note</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    Made with <span>♥</span> for brass musicians · BrassTrainer
+  </footer>
+
+  <div class="toast" id="toast"></div>
+  <script src="js/practice.js"></script>
+</body>
+</html>
