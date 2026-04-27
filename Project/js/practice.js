@@ -2,19 +2,11 @@
    practice.js — Timer, Metronome, Exercise Library
 ==================================================== */
 
-// ---- Shared exercise data ----
-const EXERCISES = [
-  { id: 'long-tones',     name: 'Long Tones',            icon: '🎵', level: 'Beginner',     meta: '4 beats per note · Full breath support' },
-  { id: 'lip-slurs',      name: 'Lip Slurs',             icon: '🌊', level: 'Intermediate', meta: 'Smooth register changes · No tongue' },
-  { id: 'major-scales',   name: 'Major Scales',          icon: '🎼', level: 'Beginner',     meta: 'All 12 keys · Quarter notes' },
-  { id: 'chromatic',      name: 'Chromatic Scale',       icon: '🔢', level: 'Intermediate', meta: 'Full range · Even articulation' },
-  { id: 'articulation',   name: 'Articulation Patterns', icon: '👅', level: 'Intermediate', meta: 'Single/double/triple tongue' },
-  { id: 'flex',           name: 'Flexibility Studies',   icon: '⚡', level: 'Advanced',     meta: 'Fast register leaps · Relaxed embouchure' },
-  { id: 'sight-reading',  name: 'Sight Reading',         icon: '👁️', level: 'Advanced',     meta: 'New passage daily · No repeat preview' },
-  { id: 'hymns',          name: 'Lyrical Hymns',         icon: '🎶', level: 'Beginner',     meta: 'Expressive phrasing · Breath control' },
-];
-
-window.EXERCISES = EXERCISES; // expose for other scripts
+// ---- Sight Reading Data ----
+const SR_NOTES = {
+  treble: ["G3", "A3", "Bb3", "B3", "C4", "C#4", "D4", "Eb4", "E4", "F4", "F#4", "G4", "Ab4", "A4", "Bb4", "B4", "C5", "D5", "E5", "F5", "G5"],
+  bass: ["E2", "F2", "F#2", "G2", "Ab2", "A2", "Bb2", "B2", "C3", "C#3", "D3", "Eb3", "E3", "F3", "F#3", "G3", "Ab3", "A3", "Bb3", "C4", "D4", "Eb4", "F4"]
+};
 
 // ---- localStorage helpers ----
 function getSessions() {
@@ -163,37 +155,151 @@ function updateSliderTrack(val) {
 }
 
 // ============================================================
-// EXERCISE LIST
+// SIGHT READING PRACTICE
 // ============================================================
-let selectedExerciseId = null;
+let currentTargetNote = "";
+let isWaiting = false;
 
-function renderExercises() {
-  const list = document.getElementById('exerciseList');
-  list.innerHTML = '';
-  EXERCISES.forEach(ex => {
-    const lvl = ex.level.toLowerCase();
-    const item = document.createElement('div');
-    item.className = 'exercise-item';
-    item.id = `ex-${ex.id}`;
-    item.innerHTML = `
-      <div class="ex-icon">${ex.icon}</div>
-      <div class="ex-info">
-        <div class="ex-name">${ex.name}</div>
-        <div class="ex-meta">${ex.meta}</div>
-      </div>
-      <span class="ex-badge badge-${lvl}">${ex.level}</span>
-    `;
-    item.addEventListener('click', () => selectExercise(ex));
-    list.appendChild(item);
-  });
+function playSound(type) {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  if (type === 'ding') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } else {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(150, ctx.currentTime);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
+  }
 }
 
-function selectExercise(ex) {
-  selectedExerciseId = ex.id;
-  document.querySelectorAll('.exercise-item').forEach(el => el.classList.remove('selected'));
-  document.getElementById(`ex-${ex.id}`).classList.add('selected');
-  document.getElementById('selectedName').textContent = ex.name;
-  document.getElementById('selectedExercise').style.display = 'block';
+function renderSRStaff(noteStr, clef) {
+  const VF = Vex.Flow;
+  const staffDisplay = document.getElementById('srStaffDisplay');
+  staffDisplay.innerHTML = "";
+  
+  const renderer = new VF.Renderer(staffDisplay, VF.Renderer.Backends.SVG);
+  renderer.resize(140, 150);
+  const context = renderer.getContext();
+  
+  const stave = new VF.Stave(10, 20, 120);
+  stave.addClef(clef).setContext(context).draw();
+  
+  const match = noteStr.match(/^([A-Ga-g])([b#]?)([0-9])$/);
+  if (!match) return;
+  const vfNote = `${match[1].toLowerCase()}${match[2]}/${match[3]}`;
+  
+  const note = new VF.StaveNote({ keys: [vfNote], duration: "q", clef: clef });
+  if (match[2]) {
+    note.addAccidental(0, new VF.Accidental(match[2]));
+  }
+  
+  const voice = new VF.Voice({ num_beats: 1, beat_value: 4 });
+  voice.addTickables([note]);
+  
+  const formatter = new VF.Formatter().joinVoices([voice]).format([voice], 80);
+  voice.draw(context, stave);
+}
+
+function nextSightReadingNote() {
+  if (isWaiting) return;
+  const clef = document.getElementById('srClef').value;
+  const pool = SR_NOTES[clef];
+  
+  let newNote;
+  do {
+    newNote = pool[Math.floor(Math.random() * pool.length)];
+  } while (newNote === currentTargetNote && pool.length > 1);
+  
+  currentTargetNote = newNote;
+  renderSRStaff(currentTargetNote, clef);
+  
+  // Generate options
+  const options = new Set();
+  options.add(currentTargetNote);
+  while(options.size < 4) {
+    options.add(pool[Math.floor(Math.random() * pool.length)]);
+  }
+  
+  const shuffled = Array.from(options).sort(() => Math.random() - 0.5);
+  const container = document.getElementById('srMultipleChoice');
+  container.innerHTML = '';
+  
+  shuffled.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-secondary';
+    btn.style.width = '80px';
+    btn.innerText = opt;
+    btn.onclick = () => checkSightReadingAnswer(opt, btn);
+    container.appendChild(btn);
+  });
+  
+  const statusMsg = document.getElementById('srStatusMsg');
+  statusMsg.innerText = "Identify the note above!";
+  statusMsg.style.color = "var(--text-muted)";
+  
+  const srContainer = document.getElementById('srContainer');
+  srContainer.style.boxShadow = "none";
+  srContainer.style.borderColor = "var(--border)";
+}
+
+function checkSightReadingAnswer(selectedNote, btn) {
+  if (isWaiting) return;
+  isWaiting = true;
+  
+  const statusMsg = document.getElementById('srStatusMsg');
+  const srContainer = document.getElementById('srContainer');
+  
+  const buttons = document.getElementById('srMultipleChoice').children;
+  for(let b of buttons) {
+    b.disabled = true;
+    if (b.innerText === currentTargetNote) {
+      b.className = 'btn btn-primary'; // Highlight correct answer
+    }
+  }
+  
+  if (selectedNote === currentTargetNote) {
+    playSound('ding');
+    statusMsg.innerText = "✅ Correct!";
+    statusMsg.style.color = "var(--success)";
+    srContainer.style.borderColor = "var(--success)";
+    srContainer.style.boxShadow = "0 0 20px rgba(16, 185, 129, 0.2)";
+    setTimeout(() => {
+      isWaiting = false;
+      nextSightReadingNote();
+    }, 1000);
+  } else {
+    playSound('buzzer');
+    btn.className = 'btn'; 
+    btn.style.backgroundColor = "#ef4444";
+    btn.style.color = "white";
+    
+    statusMsg.innerText = `❌ Incorrect. That is a ${currentTargetNote}!`;
+    statusMsg.style.color = "#ef4444";
+    srContainer.style.borderColor = "#ef4444";
+    srContainer.style.boxShadow = "0 0 20px rgba(239, 68, 68, 0.2)";
+    
+    setTimeout(() => {
+      isWaiting = false;
+      nextSightReadingNote();
+    }, 2500);
+  }
 }
 
 // ============================================================
@@ -204,17 +310,14 @@ function logSession() {
     showToast('⚠️ Practice at least 5 seconds before saving!');
     return;
   }
-  const ex = selectedExerciseId
-    ? EXERCISES.find(e => e.id === selectedExerciseId)?.name
-    : 'General Practice';
   const sessions = getSessions();
   sessions.unshift({
     date:     new Date().toISOString(),
-    exercise: ex,
+    exercise: 'Sight Reading Practice',
     seconds:  timerSeconds,
   });
   saveSessions(sessions);
-  showToast(`✅ Session saved — ${formatDur(timerSeconds)} of "${ex}"`);
+  showToast(`✅ Session saved — ${formatDur(timerSeconds)} of Sight Reading Practice`);
   timerReset();
 }
 
@@ -227,6 +330,11 @@ function formatDur(sec) {
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  renderExercises();
   updateSliderTrack(100);
+  if (typeof Vex !== 'undefined') {
+    nextSightReadingNote();
+  } else {
+    // If vexflow loads a bit late
+    setTimeout(nextSightReadingNote, 200);
+  }
 });

@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BrassTrainer — Pitch Detector</title>
-  <meta name="description" content="Practice playing the right notes with BrassTrainer's real-time pitch detector." />
+  <title>ValveTrainer — Pitch Detector</title>
+  <meta name="description" content="Practice playing the right notes with ValveTrainer's real-time pitch detector." />
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
 
   <!-- NAV -->
   <nav class="navbar">
     <div class="nav-brand">
       <span class="brand-icon">🎺</span>
-      Brass<span>Trainer</span>
+      Valve<span>Trainer</span>
     </div>
     <ul class="nav-links">
       <li><a href="index.html">🏠 Home</a></li>
@@ -21,6 +23,8 @@
       <li><a href="progress.html">📈 Progress</a></li>
       <li><a href="feedback.html">📝 Notes</a></li>
       <li><a href="pitch.html" class="active">🎯 Pitch</a></li>
+      <li><a href="keys.html">🎹 Keys</a></li>
+      <li><a href="games.html">🎮 Games</a></li>
     </ul>
   </nav>
 
@@ -37,8 +41,8 @@
       font-size: 0.875rem;
       line-height: 1.6;
     ">
-      <strong>🚫 Microphone blocked</strong> — Your browser disallows mic access on <code>file://</code> URLs.<br/>
-      <strong>Fix:</strong> Open this file using <strong>VS Code Live Server</strong>:<br/>
+      <strong>🚫 Microphone blocked</strong> — Your browser disallows mic access on <code>file://</code> URLs.<br />
+      <strong>Fix:</strong> Open this file using <strong>VS Code Live Server</strong>:<br />
       Right-click <code>index.html</code> in the VS Code Explorer → <em>"Open with Live Server"</em>.
       The page will open as <code>http://localhost:5500</code> where mic access works.
     </div>
@@ -60,7 +64,8 @@
         </select>
       </div>
       <div class="config-group">
-        <label class="config-label" for="targetNoteSelect">🎵 Target Note <span class="concert-badge" id="concertLabel"></span></label>
+        <label class="config-label" for="targetNoteSelect">🎵 Target Note <span class="concert-badge"
+            id="concertLabel"></span></label>
         <select id="targetNoteSelect" class="pitch-select" onchange="updateTargetNote()">
           <!-- Filled by JS -->
         </select>
@@ -128,7 +133,8 @@
               <div class="score-lbl">❌ Wrong</div>
             </div>
           </div>
-          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:1rem;" onclick="resetScore()">Reset Score</button>
+          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:1rem;" onclick="resetScore()">Reset
+            Score</button>
         </div>
 
         <!-- Live Frequency -->
@@ -161,7 +167,8 @@
             <li>Select your <strong>instrument</strong> and a <strong>target note</strong>.</li>
             <li>Click <strong>Start Listening</strong> and allow mic access.</li>
             <li>Play the note on your instrument.</li>
-            <li>🟢 <strong>Green</strong> = correct · 🟡 <strong>Yellow</strong> = close · 🔴 <strong>Red</strong> = wrong partial</li>
+            <li>🟢 <strong>Green</strong> = correct · 🟡 <strong>Yellow</strong> = close · 🔴 <strong>Red</strong> =
+              wrong partial</li>
           </ol>
         </div>
 
@@ -170,10 +177,11 @@
   </main>
 
   <footer class="footer">
-    Made with <span>♥</span> for brass musicians · BrassTrainer
+    Made with <span>♥</span> for brass musicians · ValveTrainer
   </footer>
 
   <div class="toast" id="toast"></div>
   <script src="js/pitch.js"></script>
 </body>
+
 </html>

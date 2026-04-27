@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ValveTrainer — Keys</title>
+  <meta name="description" content="Practice brass fingerings with our virtual valve simulator." />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Specific styles for the keys simulator */
+    .simulator-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      padding: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), var(--shadow);
+    }
+
+    .target-note-display {
+      font-family: var(--font-display);
+      font-size: 5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      text-align: center;
+      transition: color var(--transition);
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .valves-display {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+    }
+
+    .valve {
+      width: 80px;
+      height: 120px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 1rem;
+      position: relative;
+      transition: all 0.1s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .valve::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      width: 30px;
+      height: 40px;
+      background: linear-gradient(to bottom, #d4af37, #aa8529);
+      border-radius: 4px;
+      transition: transform 0.1s, top 0.1s;
+      box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4), 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .valve.pressed {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+
+    .valve.pressed::before {
+      top: -5px;
+      height: 25px;
+    }
+
+    .valve-label {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .valve.pressed .valve-label {
+      color: var(--accent);
+    }
+
+    .status-indicator {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      height: 2rem;
+      transition: color 0.2s;
+    }
+
+    .status-indicator.success {
+      color: var(--success);
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    .simulator-settings {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      width: 100%;
+      margin-bottom: 2rem;
+    }
+
+    .keybind-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+
+    .keybind-input {
+      width: 50px;
+      text-align: center;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    /* Animation for correct fingering flash */
+    @keyframes flashGreen {
+      0% {
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0);
+      }
+
+      50% {
+        box-shadow: 0 0 40px rgba(16, 185, 129, 0.6), inset 0 0 20px rgba(16, 185, 129, 0.2);
+        border-color: var(--success);
+      }
+
+      100% {
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .flash-success {
+      animation: flashGreen 0.6s ease-out;
+    }
+
+    /* Fingering Chart */
+    .chart-container {
+      margin-top: 3rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), var(--shadow);
+    }
+
+    .chart-container h3 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: var(--text-primary);
+    }
+
+    .fingering-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    .fingering-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: border-color var(--transition);
+    }
+
+    .fingering-item:hover {
+      border-color: var(--accent);
+    }
+
+    .fingering-note {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .fingering-valves {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">🎺</span>
+      Valve<span>Trainer</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="practice.html">🎵 Practice</a></li>
+      <li><a href="progress.html">📈 Progress</a></li>
+      <li><a href="feedback.html">📝 Notes</a></li>
+      <li><a href="pitch.html">🎯 Pitch</a></li>
+      <li><a href="keys.html" class="active">🎹 Keys</a></li>
+      <li><a href="games.html">🎮 Games</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="section-header">
+      <h2>🎹 Valve Simulator</h2>
+      <p>Practice trumpet fingerings. Set your custom keys, read the note, and press the correct valves.</p>
+    </div>
+
+    <!-- Settings -->
+    <div class="simulator-settings">
+      <div class="card">
+        <div class="card-title">🎺 Instrument & Audio</div>
+        <div class="config-group" style="margin-bottom: 1rem;">
+          <label class="config-label" for="instrumentSelect">Instrument</label>
+          <select id="instrumentSelect" class="pitch-select">
+            <option value="trumpet">Trumpet (Bb)</option>
+            <option value="french_horn">French Horn (Double F/Bb)</option>
+            <option value="trombone">Trombone (Slide)</option>
+            <option value="tuba">Tuba (BBb)</option>
+          </select>
+        </div>
+        <div class="config-group" style="margin-bottom: 1rem;">
+          <label class="config-label" for="soundToggle">Synthesizer Sound</label>
+          <button id="soundToggle" class="btn btn-secondary">🔊 Enable Audio</button>
+        </div>
+        <button id="nextNoteBtn" class="btn btn-primary" style="margin-top: 1rem; width: 100%;">⏭️ Random Next
+          Note</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚙️ Keybindings & Target</div>
+        <div class="config-group" style="margin-bottom: 1rem;">
+          <label class="config-label" for="targetNoteSelect">Target Note to Practice</label>
+          <select id="targetNoteSelect" class="pitch-select"></select>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Click an input and press a key
+          to set it.</p>
+        <div id="valveKeybinds">
+          <div class="keybind-group" id="thumbKeybindGroup" style="display: none;">
+            <label class="config-label">Thumb (T):</label>
+            <input type="text" id="bindT" class="pitch-select keybind-input" value="A" readonly>
+          </div>
+          <div class="keybind-group">
+            <label class="config-label">Valve 1:</label>
+            <input type="text" id="bindV1" class="pitch-select keybind-input" value="J" readonly>
+          </div>
+          <div class="keybind-group">
+            <label class="config-label">Valve 2:</label>
+            <input type="text" id="bindV2" class="pitch-select keybind-input" value="K" readonly>
+          </div>
+          <div class="keybind-group">
+            <label class="config-label">Valve 3:</label>
+            <input type="text" id="bindV3" class="pitch-select keybind-input" value="L" readonly>
+          </div>
+        </div>
+        <div id="slideKeybinds" style="display: none;">
+          <p style="color: var(--accent); font-size: 0.9rem; margin-top: 1rem; font-weight: 600;">Use keys 1 - 7 to set
+            slide position.</p>
+        </div>
+      </div>
+
+      <!-- Simulator UI -->
+      <div class="simulator-container" id="simContainer">
+        <div class="target-note-display" id="displayNote">C4</div>
+        <div class="status-indicator" id="statusIndicator">Hold SPACEBAR to Blow Air 💨</div>
+
+        <div class="valves-display" id="valvesDisplay">
+          <div class="valve" id="valveT" style="display: none; height: 100px; align-self: flex-end;">
+            <div class="valve-label">T</div>
+          </div>
+          <div class="valve" id="valve1">
+            <div class="valve-label">1</div>
+          </div>
+          <div class="valve" id="valve2">
+            <div class="valve-label">2</div>
+          </div>
+          <div class="valve" id="valve3">
+            <div class="valve-label">3</div>
+          </div>
+        </div>
+
+        <div class="valves-display" id="slideDisplay"
+          style="display: none; align-items: center; flex-direction: column;">
+          <div class="valve" style="width: 140px; justify-content: center; padding-bottom: 0;">
+            <div
+              style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: -10px;">
+              Position</div>
+            <div class="valve-label" id="slidePositionLabel" style="font-size: 4rem; color: var(--accent);">1</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fingering Chart -->
+      <div class="chart-container" id="chartContainer">
+        <h3 id="chartTitle">Trumpet Fingering Chart</h3>
+        <div class="fingering-grid" id="chartGrid">
+          <div class="fingering-item"><span class="fingering-note">F#3</span><span class="fingering-valves">1-2-3</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">G3</span><span class="fingering-valves">1-3</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">G#3</span><span class="fingering-valves">2-3</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">A3</span><span class="fingering-valves">1-2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">Bb3</span><span class="fingering-valves">1</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">B3</span><span class="fingering-valves">2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">C4</span><span class="fingering-valves">Open</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">C#4</span><span class="fingering-valves">1-2-3</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">D4</span><span class="fingering-valves">1-3</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">Eb4</span><span class="fingering-valves">2-3</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">E4</span><span class="fingering-valves">1-2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">F4</span><span class="fingering-valves">1</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">F#4</span><span class="fingering-valves">2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">G4</span><span class="fingering-valves">Open</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">G#4</span><span class="fingering-valves">2-3</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">A4</span><span class="fingering-valves">1-2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">Bb4</span><span class="fingering-valves">1</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">B4</span><span class="fingering-valves">2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">C5</span><span class="fingering-valves">Open</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">C#5</span><span class="fingering-valves">1-2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">D5</span><span class="fingering-valves">1</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">Eb5</span><span class="fingering-valves">2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">E5</span><span class="fingering-valves">Open</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">F5</span><span class="fingering-valves">1</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">F#5</span><span class="fingering-valves">2</span>
+          </div>
+          <div class="fingering-item"><span class="fingering-note">G5</span><span class="fingering-valves">Open</span>
+          </div>
+        </div>
+      </div>
+
+  </main>
+
+  <footer class="footer">
+    Made with <span>♥</span> for brass musicians · ValveTrainer
+  </footer>
+
+  <script src="js/keys.js"></script>
+</body>
+
+</html>
