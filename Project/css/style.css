@@ -764,25 +764,88 @@ a { color: inherit; text-decoration: none; }
   letter-spacing: 0;
 }
 
-/* Main layout */
-.pitch-layout {
+/* Top row: Mic + Score */
+.pitch-top-row {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
-  align-items: start;
+  margin-bottom: 1.25rem;
 }
 
-/* ORB */
+/* Fused pitch card (orb + live reading as one unit) */
+.pitch-fused-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.05), var(--shadow);
+  overflow: hidden;
+}
+
+/* Pitch card header: instrument dropdown */
+.pitch-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.pitch-card-header .config-label { margin: 0; white-space: nowrap; }
+.pitch-card-header .pitch-select  { flex: 1; }
+
+/* Pitch card body: graph on left, orb on right */
+.pitch-card-body {
+  display: flex;
+  align-items: stretch;
+}
+
+/* Frequency stability graph panel */
+.freq-graph-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem 0.75rem 1rem 1.25rem;
+  border-right: 1px solid var(--border);
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.freq-graph-title,
+.freq-graph-foot {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+}
+
+.freq-graph-wrap {
+  flex: 1;
+  width: 90px;
+  display: flex;
+  align-items: stretch;
+}
+
+.freq-graph-canvas {
+  width: 90px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+}
+
+/* ORB — inside fused card body */
 .pitch-center {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  padding: 2.5rem 1.5rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+  flex: 1;
 }
+
 
 .pitch-orb {
   width: 220px;
@@ -804,20 +867,31 @@ a { color: inherit; text-decoration: none; }
 
 .orb-note {
   font-family: var(--font-display);
-  font-size: 3.8rem;
+  font-size: 3rem;
   font-weight: 800;
   letter-spacing: -2px;
   line-height: 1;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.15rem;
+  transition: color 0.15s;
+}
+
+.orb-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+  line-height: 1.5;
   transition: color 0.15s;
 }
 
 .orb-status {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.6px;
+  margin-top: 0.2rem;
 }
 
 /* Orb states */
@@ -863,50 +937,35 @@ a { color: inherit; text-decoration: none; }
   80%       { transform: translateX(5px); }
 }
 
-/* Tuning Bar */
-.tuning-bar-wrap { width: 100%; max-width: 340px; }
+/* Tuning Dial */
+.tuning-dial-wrap {
+  width: 100%;
+  max-width: 340px;
+}
 
-.tuning-labels {
+.tuning-dial-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 16px rgba(0,0,0,0.4));
+}
+
+#dialNeedle {
+  transform-box: view-box;
+  transform-origin: 120px 130px;
+  transition: transform 0.1s ease-out;
+}
+
+.dial-label-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  font-size: 0.68rem;
   font-weight: 600;
-  margin-bottom: 6px;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.tuning-bar {
-  position: relative;
-  height: 12px;
-  background: var(--bg-hover);
-  border-radius: 6px;
-  border: 1px solid var(--border);
-}
-
-.tuning-center-line {
-  position: absolute;
-  left: 50%;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  background: var(--accent);
-  border-radius: 1px;
-  transform: translateX(-50%);
-}
-
-.tuning-needle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  background: var(--text-primary);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: left 0.08s ease-out;
-  box-shadow: 0 0 6px rgba(0,0,0,0.5);
+  margin-top: 4px;
+  padding: 0 4px;
 }
 
 /* Sidebar */
@@ -1014,7 +1073,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 900px) {
-  .pitch-layout  { grid-template-columns: 1fr; }
+  .pitch-top-row { grid-template-columns: 1fr; }
   .pitch-config  { grid-template-columns: 1fr; }
 }
 
@@ -1025,4 +1084,107 @@ a { color: inherit; text-decoration: none; }
   .timer-display { font-size: 3.2rem; }
   .pitch-orb  { width: 170px; height: 170px; }
   .orb-note   { font-size: 3rem; }
+}
+
+/* ---------- CREATE TAB (NOTATION EDITOR) ---------- */
+.create-page {
+  max-width: 1200px;
+}
+
+.editor-toolbar, .playback-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+  align-items: flex-end;
+}
+
+.toolbar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.toolbar-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.toolbar-divider {
+  width: 1px;
+  background: var(--border);
+  margin: 0.5rem 0;
+}
+
+.btn-group {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-hover);
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.tool-btn {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tool-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tool-btn.active-tool {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.tool-btn.danger.active-tool {
+  background: var(--danger);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.editor-container {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2rem;
+  min-height: 300px;
+  background: #f8f9fa; /* slightly lighter to contrast with staff */
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+/* Light mode for the SVG container for contrast if in dark mode */
+.editor-scroll-container {
+  position: relative;
+  width: 100%; /* will expand via JS */
+}
+
+.editor-scroll-container svg {
+  display: block;
+}
+
+.sweep-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  pointer-events: none;
+  z-index: 10;
+  transition: left 0.05s linear;
 }
