@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ValveTrainer — Create</title>
+  <meta name="description" content="Create your own brass exercises and sheet music with ValveTrainer." />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@3.0.9/releases/vexflow-min.js"></script>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">🎺</span>
+      Valve<span>Trainer</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="practice.html">🎵 Practice</a></li>
+      <li><a href="progress.html">📈 Progress</a></li>
+      <li><a href="feedback.html">📝 Notes</a></li>
+      <li><a href="pitch.html">🎯 Pitch</a></li>
+      <li><a href="keys.html">🎹 Keys</a></li>
+      <li><a href="games.html">🎮 Games</a></li>
+      <li><a href="create.html" class="active">✍️ Create</a></li>
+    </ul>
+  </nav>
+
+  <main class="page create-page">
+    <div class="section-header">
+      <h2>✍️ Create Sheet Music</h2>
+      <p>Click on the staff to place notes. Use the toolbar to change note lengths, accidentals, and dynamics.</p>
+    </div>
+
+    <!-- EDITOR TOOLBAR -->
+    <div class="editor-toolbar card">
+      
+      <!-- Staff Config -->
+      <div class="toolbar-group">
+        <label>Clef</label>
+        <select id="clefSelect" class="pitch-select">
+          <option value="treble">Treble</option>
+          <option value="bass">Bass</option>
+          <option value="alto">Alto</option>
+        </select>
+      </div>
+
+      <div class="toolbar-group">
+        <label>Time Sig</label>
+        <select id="timeSigSelect" class="pitch-select">
+          <option value="4/4">4/4</option>
+          <option value="3/4">3/4</option>
+          <option value="2/4">2/4</option>
+          <option value="6/8">6/8</option>
+        </select>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Note Durations -->
+      <div class="toolbar-group">
+        <label>Duration</label>
+        <div class="btn-group" id="durationGroup">
+          <button class="tool-btn" data-duration="w">𝅝 Whole</button>
+          <button class="tool-btn" data-duration="h">𝅗𝅥 Half</button>
+          <button class="tool-btn active-tool" data-duration="q">𝅘𝅥 Quarter</button>
+          <button class="tool-btn" data-duration="8">𝅘𝅥𝅮 Eighth</button>
+          <button class="tool-btn" data-duration="16">𝅘𝅥𝅯 Sixteenth</button>
+        </div>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Accidentals -->
+      <div class="toolbar-group">
+        <label>Accidental</label>
+        <div class="btn-group" id="accidentalGroup">
+          <button class="tool-btn active-tool" data-accidental="none">None</button>
+          <button class="tool-btn" data-accidental="b">♭ Flat</button>
+          <button class="tool-btn" data-accidental="#">♯ Sharp</button>
+          <button class="tool-btn" data-accidental="n">♮ Natural</button>
+        </div>
+      </div>
+
+      <div class="toolbar-divider"></div>
+      
+      <!-- Actions -->
+      <div class="toolbar-group">
+        <label>Action</label>
+        <div class="btn-group">
+          <button class="tool-btn danger" id="deleteModeBtn">🗑️ Delete Mode</button>
+          <button class="tool-btn" id="clearBtn">🧹 Clear All</button>
+          <button class="tool-btn" id="exportPngBtn">🖼️ Export PNG</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYBACK CONTROLS -->
+    <div class="playback-toolbar card">
+      <div class="toolbar-group" style="flex-direction: row; align-items: center; gap: 1rem;">
+        <button class="btn btn-primary" id="playBtn" style="width: 120px;">▶️ Play</button>
+        <button class="btn btn-secondary" id="stopBtn" style="width: 120px;" disabled>⏹️ Stop</button>
+        
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+          <label for="bpmInput" style="font-weight: bold; font-size: 0.9rem;">BPM</label>
+          <input type="number" id="bpmInput" class="pitch-select" value="120" min="40" max="240" style="width: 80px;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- EDITOR CONTAINER -->
+    <div class="editor-container card" id="editorContainerWrapper">
+      <div id="editorScrollContainer" class="editor-scroll-container">
+        <div id="staffContainer"></div>
+        <div id="playbackSweepLine" class="sweep-line" style="display: none;"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    Made with <span>♥</span> for brass musicians · ValveTrainer
+  </footer>
+
+  <div class="toast" id="toast"></div>
+  <script src="js/create.js"></script>
+</body>
+
+</html>

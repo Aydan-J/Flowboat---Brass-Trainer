@@ -25,6 +25,7 @@
       <li><a href="pitch.html" class="active">🎯 Pitch</a></li>
       <li><a href="keys.html">🎹 Keys</a></li>
       <li><a href="games.html">🎮 Games</a></li>
+      <li><a href="create.html">✍️ Create</a></li>
     </ul>
   </nav>
 
@@ -48,132 +49,130 @@
     </div>
 
     <div class="section-header">
-      <h2>🎯 Pitch Detector</h2>
-      <p>Select a target note, start your mic, and play. The app will tell you if you nailed it.</p>
+      <h2>🎯 Chromatic Tuner</h2>
+      <p>Start your mic and play any note — the tuner will detect it and show you how close you are.</p>
     </div>
 
-    <!-- CONFIG ROW -->
-    <div class="pitch-config">
-      <div class="config-group">
-        <label class="config-label" for="instrumentSelect">🎺 Instrument</label>
-        <select id="instrumentSelect" class="pitch-select" onchange="updateTransposition()">
-          <option value="0">Trombone / Tuba / Baritone (Concert Pitch)</option>
-          <option value="-2" selected>Trumpet / Cornet (Bb — sounds a step down)</option>
-          <option value="-7">French Horn (F — sounds a 5th down)</option>
-          <option value="-9">Alto Saxophone (Eb)</option>
+    <!-- HOW IT WORKS — top of page -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-title">💡 How It Works</div>
+      <ol class="how-list">
+        <li>Click <strong>Start Listening</strong> and allow mic access.</li>
+        <li>Play any note on your instrument.</li>
+        <li>The tuner detects the closest note and shows how many cents off you are.</li>
+        <li>🟢 <strong>Green</strong> = in tune · 🟡 <strong>Yellow</strong> = slightly off · 🔴 <strong>Red</strong> = sharp or flat</li>
+      </ol>
+    </div>
+
+    <!-- MIC + SCORE ROW — above pitch card -->
+    <div class="pitch-top-row">
+
+      <!-- Controls -->
+      <div class="card">
+        <div class="card-title">🎙️ Microphone</div>
+        <button class="btn btn-primary" id="micBtn" onclick="toggleMic()" style="width:100%; margin-bottom:0.75rem;">
+          🎙️ Start Listening
+        </button>
+        <div class="mic-status" id="micStatus">
+          <span class="mic-dot" id="micDot"></span>
+          <span id="micStatusText">Microphone off</span>
+        </div>
+        <div style="margin-top:0.75rem; font-size:0.78rem; color:var(--text-muted); line-height:1.5;">
+          Your audio never leaves your device. All processing happens locally in the browser.
+        </div>
+      </div>
+
+      <!-- Score -->
+      <div class="card">
+        <div class="card-title">🏆 Score</div>
+        <div class="score-grid">
+          <div class="score-item">
+            <div class="score-val" id="scoreCorrect">0</div>
+            <div class="score-lbl">✅ Correct</div>
+          </div>
+          <div class="score-item">
+            <div class="score-val" id="scoreClose">0</div>
+            <div class="score-lbl">🎯 Close</div>
+          </div>
+          <div class="score-item">
+            <div class="score-val" id="scoreWrong">0</div>
+            <div class="score-lbl">❌ Wrong</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:1rem;" onclick="resetScore()">Reset Score</button>
+      </div>
+
+    </div>
+
+    <!-- PITCH CARD -->
+    <div class="pitch-fused-card">
+
+      <!-- Card header: instrument dropdown (top-left) -->
+      <div class="pitch-card-header">
+        <label class="config-label" for="transpositionSelect">🎺 Instrument</label>
+        <select id="transpositionSelect" class="pitch-select" onchange="updateTransposition(this.value)">
+          <option value="0">Concert Pitch (Trombone / Tuba / Baritone)</option>
+          <option value="2" selected>Trumpet / Cornet (B♭)</option>
+          <option value="7">French Horn (F)</option>
+          <option value="9">Alto Saxophone (E♭)</option>
+          <option value="2">B♭ Clarinet</option>
         </select>
       </div>
-      <div class="config-group">
-        <label class="config-label" for="targetNoteSelect">🎵 Target Note <span class="concert-badge"
-            id="concertLabel"></span></label>
-        <select id="targetNoteSelect" class="pitch-select" onchange="updateTargetNote()">
-          <!-- Filled by JS -->
-        </select>
-      </div>
-    </div>
 
-    <!-- MAIN DETECTOR LAYOUT -->
-    <div class="pitch-layout">
+      <!-- Card body: stability graph + orb/dial -->
+      <div class="pitch-card-body">
 
-      <!-- INDICATOR ORBS -->
-      <div class="pitch-center">
-        <div class="pitch-orb" id="pitchOrb">
-          <div class="orb-inner">
-            <div class="orb-note" id="orbNote">—</div>
-            <div class="orb-status" id="orbStatus">Press Start</div>
+        <!-- Hz stability graph (left panel) -->
+        <div class="freq-graph-panel">
+          <div class="freq-graph-title">Stability</div>
+          <div class="freq-graph-wrap">
+            <canvas id="freqGraph" class="freq-graph-canvas"></canvas>
           </div>
+          <div class="freq-graph-foot">Hz over time</div>
         </div>
 
-        <!-- TUNING METER -->
-        <div class="tuning-bar-wrap">
-          <div class="tuning-labels">
-            <span>♭ Flat</span>
-            <span>In Tune</span>
-            <span>Sharp ♯</span>
+        <!-- Orb + dial (centre) -->
+        <div class="pitch-center">
+          <div class="pitch-orb" id="pitchOrb">
+            <div class="orb-inner">
+              <div class="orb-note" id="orbNote">—</div>
+              <div class="orb-sub" id="orbCents">— ¢</div>
+              <div class="orb-sub" id="orbFreq">— Hz</div>
+              <div class="orb-status" id="orbStatus">Press Start</div>
+            </div>
           </div>
-          <div class="tuning-bar" id="tuningBar">
-            <div class="tuning-center-line"></div>
-            <div class="tuning-needle" id="tuningNeedle"></div>
-          </div>
-        </div>
-      </div>
 
-      <!-- SIDE PANEL -->
-      <div class="pitch-sidebar">
-
-        <!-- Controls -->
-        <div class="card">
-          <div class="card-title">🎙️ Microphone</div>
-          <button class="btn btn-primary" id="micBtn" onclick="toggleMic()" style="width:100%; margin-bottom:0.75rem;">
-            🎙️ Start Listening
-          </button>
-          <div class="mic-status" id="micStatus">
-            <span class="mic-dot" id="micDot"></span>
-            <span id="micStatusText">Microphone off</span>
-          </div>
-          <div style="margin-top:0.75rem; font-size:0.78rem; color:var(--text-muted); line-height:1.5;">
-            Your audio never leaves your device. All processing happens locally in the browser.
-          </div>
-        </div>
-
-        <!-- Score -->
-        <div class="card">
-          <div class="card-title">🏆 Score</div>
-          <div class="score-grid">
-            <div class="score-item">
-              <div class="score-val" id="scoreCorrect">0</div>
-              <div class="score-lbl">✅ Correct</div>
-            </div>
-            <div class="score-item">
-              <div class="score-val" id="scoreClose">0</div>
-              <div class="score-lbl">🎯 Close</div>
-            </div>
-            <div class="score-item">
-              <div class="score-val" id="scoreWrong">0</div>
-              <div class="score-lbl">❌ Wrong</div>
-            </div>
-          </div>
-          <button class="btn btn-secondary btn-sm" style="width:100%; margin-top:1rem;" onclick="resetScore()">Reset
-            Score</button>
-        </div>
-
-        <!-- Live Frequency -->
-        <div class="card">
-          <div class="card-title">📡 Live Reading</div>
-          <div class="live-reading">
-            <div class="reading-row">
-              <span class="reading-label">Detected</span>
-              <span class="reading-value" id="liveNote">—</span>
-            </div>
-            <div class="reading-row">
-              <span class="reading-label">Frequency</span>
-              <span class="reading-value" id="liveFreq">—</span>
-            </div>
-            <div class="reading-row">
-              <span class="reading-label">Target</span>
-              <span class="reading-value" id="liveTarget">—</span>
-            </div>
-            <div class="reading-row">
-              <span class="reading-label">Cents Off</span>
-              <span class="reading-value" id="liveCents">—</span>
+          <!-- TUNING DIAL -->
+          <div class="tuning-dial-wrap">
+            <svg class="tuning-dial-svg" viewBox="0 0 240 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 20,130 A 100,100 0 0,1 220,130" stroke="rgba(255,255,255,0.08)" stroke-width="16" stroke-linecap="round"/>
+              <path d="M 20,130 A 100,100 0 0,1 53.1,55.7"   stroke="#ef4444" stroke-width="12" stroke-linecap="round" opacity="0.5"/>
+              <path d="M 53.1,55.7 A 100,100 0 0,1 94.1,33.4" stroke="#f5c842" stroke-width="12" stroke-linecap="round" opacity="0.55"/>
+              <path d="M 94.1,33.4 A 100,100 0 0,1 145.9,33.4" stroke="#10b981" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+              <path d="M 145.9,33.4 A 100,100 0 0,1 186.9,55.7" stroke="#f5c842" stroke-width="12" stroke-linecap="round" opacity="0.55"/>
+              <path d="M 186.9,55.7 A 100,100 0 0,1 220,130"  stroke="#ef4444" stroke-width="12" stroke-linecap="round" opacity="0.5"/>
+              <line x1="20"    y1="130"  x2="34"    y2="130"  stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="49.3"  y1="59.3" x2="59.6"  y2="69.6" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="120"   y1="30"   x2="120"   y2="44"   stroke="rgba(255,255,255,0.65)" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="190.7" y1="59.3" x2="180.4" y2="69.6" stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round"/>
+              <line x1="220"   y1="130"  x2="206"   y2="130"  stroke="rgba(255,255,255,0.45)" stroke-width="2" stroke-linecap="round"/>
+              <g id="dialNeedle" transform="rotate(0, 120, 130)">
+                <line x1="120" y1="130" x2="120" y2="38" stroke="rgba(255,255,255,0.92)" stroke-width="2.5" stroke-linecap="round"/>
+                <polygon points="120,30 116,42 124,42" fill="rgba(255,255,255,0.92)"/>
+              </g>
+              <circle cx="120" cy="130" r="9" fill="#3b82f6" opacity="0.85"/>
+              <circle cx="120" cy="130" r="4" fill="white"/>
+            </svg>
+            <div class="dial-label-row">
+              <span>♭ Flat</span>
+              <span>In Tune</span>
+              <span>Sharp ♯</span>
             </div>
           </div>
         </div>
 
-        <!-- How to Use -->
-        <div class="card">
-          <div class="card-title">💡 How It Works</div>
-          <ol class="how-list">
-            <li>Select your <strong>instrument</strong> and a <strong>target note</strong>.</li>
-            <li>Click <strong>Start Listening</strong> and allow mic access.</li>
-            <li>Play the note on your instrument.</li>
-            <li>🟢 <strong>Green</strong> = correct · 🟡 <strong>Yellow</strong> = close · 🔴 <strong>Red</strong> =
-              wrong partial</li>
-          </ol>
-        </div>
-
-      </div>
-    </div>
+      </div><!-- /.pitch-card-body -->
+    </div><!-- /.pitch-fused-card -->
   </main>
 
   <footer class="footer">
