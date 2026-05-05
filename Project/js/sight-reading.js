@@ -36,8 +36,8 @@ let pauseOffset = 0;
 let animationId = null;
 let audioCtx = null;
 
-const HIT_WINDOW_BACK = 35; 
-const HIT_WINDOW_FRONT = 60; 
+// The game evaluates when the line is within this range of the note center
+const EVAL_TOLERANCE = 15; // pixels
 const PIXELS_PER_MEASURE = 400;
 const BEATS_PER_MEASURE = 4;
 
@@ -166,13 +166,12 @@ function generateTrack() {
   
   let xOffset = 50;
   
-  // Filter range. Ensure we have at least SOME notes.
   let filteredRange = includeAccidentals 
     ? noteRange 
     : noteRange.filter(n => !n.includes('#') && !n.includes('b'));
   
   if (filteredRange.length === 0) {
-    filteredRange = noteRange; // Fallback to full range if filter is too strict
+    filteredRange = noteRange; 
   }
 
   for (let m = 0; m < numMeasures; m++) {
@@ -239,8 +238,6 @@ function generateTrack() {
     
     new VF.Formatter().joinVoices([voice]).format([voice], PIXELS_PER_MEASURE - (m === 0 ? 120 : 50));
     
-    // Draw voice normally to ensure formatting is correct, then find elements?
-    // Actually individual draw with setStave is better for IDs.
     measureNotesData.forEach((noteData) => {
       noteData.vfNote.setStave(stave).setContext(context);
       if (!noteData.isRest) {
@@ -282,16 +279,20 @@ function gameLoop(timestamp) {
   
   notesOnStaff.forEach(note => {
     if (!note.processed) {
-      if (Math.abs(currentX - note.x) < HIT_WINDOW_BACK) {
+      // Logic: Evaluation point is when currentX JUST crosses note.x
+      if (currentX >= note.x) {
          if (currentFingering === note.fingering) {
             note.hit = true;
             note.processed = true;
             handleHit(note);
+         } else {
+            // Give a TINY window (EVAL_TOLERANCE) to catch it if they were frame-perfect
+            // Otherwise, it's a miss
+            if (currentX > note.x + EVAL_TOLERANCE) {
+               note.processed = true;
+               handleMiss(note);
+            }
          }
-      }
-      else if (currentX > note.x + HIT_WINDOW_FRONT) {
-         note.processed = true;
-         handleMiss(note);
       }
     }
   });
@@ -438,6 +439,19 @@ window.addEventListener('keyup', (e) => {
 
 function updateKeyVisual(id, active) {
   const el = document.getElementById(id);
+  if (el) {
+    if (active) el.classList.add('active');
+    else el.classList.remove('active');
+  }
+
+  // Also update the visual valve display
+  if (id === 'keyJ') updateVisualValve(1, active);
+  if (id === 'keyK') updateVisualValve(2, active);
+  if (id === 'keyL') updateVisualValve(3, active);
+}
+
+function updateVisualValve(num, active) {
+  const el = document.getElementById(`visualValve${num}`);
   if (el) {
     if (active) el.classList.add('active');
     else el.classList.remove('active');

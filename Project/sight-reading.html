@@ -45,6 +45,57 @@
       display: none;
     }
 
+    #resultsOverlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: var(--bg-secondary);
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .valves-visual-container {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 1.5rem;
+      z-index: 30;
+      background: rgba(255,255,255,0.8);
+      padding: 10px 20px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .valve-circle {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      border: 3px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: #94a3b8;
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      background: white;
+    }
+
+    .valve-circle.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      transform: scale(1.1);
+      box-shadow: 0 0 15px var(--accent);
+    }
+
     .game-overlay {
       position: absolute;
       inset: 0;
@@ -186,6 +237,13 @@
       <div id="scrollingTrack">
         <div id="staffContainer"></div>
         <div id="sweepLine" class="sweep-line"></div>
+      </div>
+
+      <!-- Valve Visual Display (Real-time) -->
+      <div class="valves-visual-container">
+        <div class="valve-circle" id="visualValve1">1</div>
+        <div class="valve-circle" id="visualValve2">2</div>
+        <div class="valve-circle" id="visualValve3">3</div>
       </div>
       
       <div id="feedbackHit" class="feedback-msg feedback-hit" style="left: 40px;">Perfect!</div>
