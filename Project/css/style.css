@@ -30,6 +30,19 @@
   --font-display:  'Outfit', sans-serif;
 }
 
+/* Light Mode Overrides */
+body.light-mode {
+  --bg-primary:    #f9fafb;
+  --bg-secondary:  #ffffff;
+  --bg-card:       rgba(255, 255, 255, 0.8);
+  --bg-hover:      rgba(243, 244, 246, 0.8);
+  --text-primary:  #111827;
+  --text-secondary:#4b5563;
+  --text-muted:    #6b7280;
+  --border:        rgba(0, 0, 0, 0.1);
+  --shadow:        0 8px 32px rgba(0,0,0,0.05);
+}
+
 /* ---------- Reset ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 

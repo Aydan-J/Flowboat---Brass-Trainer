@@ -1,134 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ValveTrainer — Games</title>
-  <meta name="description" content="Play the 1-Minute Drill to test your brass fingering skills." />
+  <title>ValveTrainer — Games Hub</title>
+  <meta name="description" content="Level up your brass playing with our interactive music games." />
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .game-container {
-      max-width: 800px;
-      margin: 0 auto;
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 3rem;
+      perspective: 1000px;
     }
-    
-    .game-card {
+
+    .game-card-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .game-card-link:hover {
+      transform: translateY(-12px) scale(1.02);
+    }
+
+    .game-hub-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 2.5rem;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: inset 0 1px 1px rgba(255,255,255,0.05), var(--shadow);
-      margin-bottom: 2rem;
-    }
-
-    .game-header {
+      padding: 3rem 2rem;
       text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .game-header h2 {
-      font-size: 2.5rem;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-    }
-
-    .setup-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    .big-note {
-      font-family: var(--font-display);
-      font-size: 7rem;
-      font-weight: 800;
-      color: var(--text-primary);
-      text-align: center;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.5);
-      margin: 2rem 0;
-    }
-
-    .stats-bar {
+      height: 100%;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      background: var(--bg-secondary);
-      padding: 1rem 2rem;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border);
-      margin-bottom: 2rem;
+      justify-content: center;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
     }
 
-    .stat-box {
-      text-align: center;
+    .game-card-link:hover .game-hub-card {
+      border-color: var(--accent);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 20px rgba(59, 130, 246, 0.2);
     }
 
-    .stat-value {
-      font-size: 2rem;
-      font-weight: 700;
+    .game-icon {
+      font-size: 5rem;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+      transition: transform 0.3s;
+    }
+
+    .game-card-link:hover .game-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .game-hub-card h3 {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
       font-family: var(--font-display);
     }
 
-    .stat-label {
-      font-size: 0.85rem;
+    .game-hub-card p {
       color: var(--text-muted);
+      font-size: 1.1rem;
+      line-height: 1.6;
+      max-width: 250px;
+    }
+
+    .badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--accent);
+      color: white;
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
 
-    .timer-text {
-      color: var(--accent);
-    }
-    
-    .score-correct { color: var(--success); }
-    .score-wrong { color: #ef4444; }
-
-    .status-msg {
-      text-align: center;
-      font-size: 1.25rem;
-      font-weight: 600;
-      height: 2rem;
-      margin-bottom: 1rem;
-      transition: color 0.2s;
+    .badge.soon {
+      background: #4b5563;
     }
 
-    /* Animations */
-    @keyframes flashGreen {
-      0% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
-      50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.4), inset 0 0 20px rgba(16, 185, 129, 0.2); border-color: var(--success); }
-      100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+    .coming-soon {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
 
-    @keyframes flashRed {
-      0% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
-      50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.4), inset 0 0 20px rgba(239, 68, 68, 0.2); border-color: #ef4444; }
-      100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
-    }
-
-    .flash-success { animation: flashGreen 0.4s ease-out; }
-    .flash-error { animation: flashRed 0.4s ease-out; }
-
-    .missed-notes-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      justify-content: center;
-      margin-top: 1rem;
-    }
-
-    .missed-tag {
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
-      padding: 0.25rem 0.75rem;
-      border-radius: var(--radius-full);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      font-weight: 600;
+    .coming-soon:hover {
+      transform: none;
     }
   </style>
 </head>
+
 <body>
 
   <!-- NAV -->
@@ -149,131 +124,48 @@
     </ul>
   </nav>
 
-  <main class="page game-container">
-    
-    <!-- SETUP SCREEN -->
-    <div id="setupScreen" class="game-card">
-      <div class="game-header">
-        <h2>⏱️ Speed Drill</h2>
-        <p>Test your reaction time. Choose your instrument, set your time limit, and identify as many random notes as you can!</p>
-      </div>
-
-      <div class="setup-grid">
-        <div class="config-group">
-          <label class="config-label">Instrument</label>
-          <select id="drillInstrument" class="pitch-select">
-            <option value="trumpet">Trumpet (Bb)</option>
-            <option value="french_horn">French Horn (Double F/Bb)</option>
-            <option value="trombone">Trombone (Slide)</option>
-            <option value="tuba">Tuba (BBb)</option>
-          </select>
-          
-          <label class="config-label" style="margin-top: 1.5rem;">Time Limit</label>
-          <select id="drillTime" class="pitch-select">
-            <option value="60">1 Minute</option>
-            <option value="180">3 Minutes</option>
-            <option value="300">5 Minutes</option>
-          </select>
-          
-          <label class="config-label" style="margin-top: 1.5rem;">Difficulty</label>
-          <select id="drillDifficulty" class="pitch-select">
-            <option value="easy">Easy (Text Notes)</option>
-            <option value="hard">Hard (Sheet Music)</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="config-label">Keybindings</label>
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Click an input and press a key to set it. Press Spacebar to release air.</p>
-          
-          <div id="valveKeybinds">
-            <div class="keybind-group" id="thumbKeybindGroup" style="display: none; margin-bottom: 0.5rem;">
-              <span style="display:inline-block; width: 60px;">Thumb:</span>
-              <input type="text" id="bindT" class="pitch-select" style="width:50px; text-align:center; padding: 0.25rem;" value="A" readonly>
-            </div>
-            <div class="keybind-group" style="margin-bottom: 0.5rem;">
-              <span style="display:inline-block; width: 60px;">Valve 1:</span>
-              <input type="text" id="bindV1" class="pitch-select" style="width:50px; text-align:center; padding: 0.25rem;" value="J" readonly>
-            </div>
-            <div class="keybind-group" style="margin-bottom: 0.5rem;">
-              <span style="display:inline-block; width: 60px;">Valve 2:</span>
-              <input type="text" id="bindV2" class="pitch-select" style="width:50px; text-align:center; padding: 0.25rem;" value="K" readonly>
-            </div>
-            <div class="keybind-group" style="margin-bottom: 0.5rem;">
-              <span style="display:inline-block; width: 60px;">Valve 3:</span>
-              <input type="text" id="bindV3" class="pitch-select" style="width:50px; text-align:center; padding: 0.25rem;" value="L" readonly>
-            </div>
-          </div>
-          <div id="slideKeybinds" style="display: none;">
-            <p style="color: var(--accent); font-weight: 600;">Use keys 1 - 7 to set slide position.</p>
-          </div>
-        </div>
-      </div>
-
-      <button id="startBtn" class="btn btn-primary" style="width: 100%; font-size: 1.25rem; padding: 1rem;">🚀 Start Game</button>
+  <main class="page">
+    <div class="section-header">
+      <h2>🎮 Games Hub</h2>
+      <p>Master your instrument while having fun. Choose a challenge below.</p>
     </div>
 
-    <!-- GAME SCREEN -->
-    <div id="gameScreen" class="game-card" style="display: none;">
-      <div class="stats-bar">
-        <div class="stat-box">
-          <div class="stat-value score-correct" id="scoreCorrect">0</div>
-          <div class="stat-label">Correct</div>
+    <div class="games-grid">
+      <!-- SPEED DRILL -->
+      <a href="speed-drill.html" class="game-card-link">
+        <div class="game-hub-card">
+          <div class="game-icon">⚡</div>
+          <h3>Speed Drill</h3>
+          <p>How many notes can you identify in 60 seconds? Test your reflexes.</p>
         </div>
-        <div class="stat-box">
-          <div class="stat-value timer-text" id="timerDisplay">1:00</div>
-          <div class="stat-label">Time Left</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value score-wrong" id="scoreWrong">0</div>
-          <div class="stat-label">Wrong</div>
-        </div>
-      </div>
+      </a>
 
-      <div class="status-msg" id="gameMsg" style="color: var(--text-muted);">Hold valves and press SPACEBAR</div>
-      
-      <div class="big-note" id="targetNote">C4</div>
-      
-      <div id="staffDisplayContainer" style="display: none; justify-content: center; margin: 1.5rem 0;">
-        <div id="staffDisplay" style="background: white; padding: 15px; border-radius: var(--radius-md); box-shadow: var(--shadow);"></div>
-      </div>
-      
-      <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem;">
-        Press SPACEBAR to submit your fingering/position
+      <!-- SIGHT READING -->
+      <a href="sight-reading.html" class="game-card-link">
+        <div class="game-hub-card">
+          <div class="game-icon">🎼</div>
+          <h3>Sight Reading</h3>
+          <p>Play along with scrolling music. Hit the right fingerings at the right time!</p>
+        </div>
+      </a>
+
+      <!-- RHYTHM PRACTICE -->
+      <div class="game-card-link coming-soon">
+        <div class="game-hub-card">
+          <div class="badge soon">Coming Soon</div>
+          <div class="game-icon">🥁</div>
+          <h3>Rhythm Practice</h3>
+          <p>Master complex subdivisions and syncopation. Improving your internal clock.</p>
+        </div>
       </div>
     </div>
-
-    <!-- RESULTS SCREEN -->
-    <div id="resultsScreen" class="game-card" style="display: none; text-align: center;">
-      <h2 style="font-size: 3rem; margin-bottom: 1rem;">Game Over!</h2>
-      
-      <div class="setup-grid" style="max-width: 400px; margin: 0 auto 2rem auto;">
-        <div class="card" style="padding: 1.5rem;">
-          <div class="stat-label">Final Score</div>
-          <div class="stat-value score-correct" id="finalCorrect" style="font-size: 3rem;">0</div>
-        </div>
-        <div class="card" style="padding: 1.5rem;">
-          <div class="stat-label">Mistakes</div>
-          <div class="stat-value score-wrong" id="finalWrong" style="font-size: 3rem;">0</div>
-        </div>
-      </div>
-
-      <div id="missedNotesContainer" style="display: none; margin-bottom: 2rem;">
-        <h3 style="color: var(--text-primary); margin-bottom: 1rem;">Notes to Review:</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">You missed these notes. Check the Keys tab to practice them!</p>
-        <div class="missed-notes-list" id="missedList"></div>
-      </div>
-
-      <button id="playAgainBtn" class="btn btn-primary" style="padding: 1rem 3rem;">🔄 Play Again</button>
-    </div>
-
   </main>
 
   <footer class="footer">
     Made with <span>♥</span> for brass musicians · ValveTrainer
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@3.0.9/releases/vexflow-min.js"></script>
-  <script src="js/games.js"></script>
+  <script src="js/theme.js"></script>
 </body>
+
 </html>

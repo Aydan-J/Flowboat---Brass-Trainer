@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ValveTrainer — Sight Reading Game</title>
+  <meta name="description" content="A real-time sight reading game for brass players." />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .game-area {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      margin-top: 2rem;
+      overflow: hidden;
+      min-height: 480px;
+      box-shadow: var(--shadow);
+    }
+
+    #scrollingTrack {
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* Hide scrollbar completely */
+      position: relative;
+    }
+
+    #staffContainer {
+      width: 100%;
+      height: 300px;
+      overflow: visible;
+      background: white;
+    }
+
+    .sweep-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+      z-index: 10;
+      pointer-events: none;
+      display: none;
+    }
+
+    .game-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-card);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 1rem;
+    }
+
+    .setup-card {
+      width: 100%;
+      max-width: 650px;
+      background: var(--bg-secondary);
+      padding: 2rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      /* Remove scrollbar */
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE 10+ */
+    }
+    .setup-card::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+    .stats-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      font-family: var(--font-display);
+    }
+
+    .stat-pill {
+      background: var(--bg-card);
+      padding: 0.5rem 1.5rem;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      font-weight: 700;
+      box-shadow: var(--shadow);
+    }
+
+    .combo-text { color: var(--accent); }
+    .score-text { font-size: 1.2rem; }
+
+    .feedback-msg {
+      position: absolute;
+      top: 40px;
+      font-size: 1.8rem;
+      font-weight: 800;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 100;
+      text-transform: uppercase;
+      font-family: var(--font-display);
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .feedback-active { 
+      opacity: 1 !important; 
+      transform: scale(1.2);
+    }
+    
+    .feedback-hit { color: var(--success); text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+    .feedback-miss { color: var(--danger); text-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+    .game-controls {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      display: none; /* Hidden by default, shown when game starts */
+      gap: 0.5rem;
+      z-index: 60;
+    }
+
+    .control-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: var(--transition);
+    }
+
+    .control-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+
+    /* Pause Overlay Specifics */
+    #pauseOverlay {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">🎺</span>
+      Valve<span>Trainer</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html">🏠 Home</a></li>
+      <li><a href="practice.html">🎵 Practice</a></li>
+      <li><a href="progress.html">📈 Progress</a></li>
+      <li><a href="feedback.html">📝 Notes</a></li>
+      <li><a href="pitch.html">🎯 Pitch</a></li>
+      <li><a href="keys.html">🎹 Keys</a></li>
+      <li><a href="games.html" class="active">🎮 Games</a></li>
+      <li><a href="create.html">✍️ Create</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="section-header">
+      <div style="text-align: left; margin-bottom: 1rem;">
+        <a href="games.html" class="nav-link" style="color: var(--text-muted); text-decoration: none;">← Back to Games</a>
+      </div>
+      <h2>🎼 Sight Reading Master</h2>
+      <p>Hold the correct fingerings as the line crosses each note!</p>
+    </div>
+
+    <div class="stats-header">
+      <div class="stat-pill score-text">Score: <span id="scoreVal">0</span></div>
+      <div class="stat-pill combo-text">Combo: <span id="comboVal">0</span>x</div>
+      <div class="stat-pill" id="currentBpmDisplay">100 BPM</div>
+    </div>
+
+    <div class="game-area" id="gameAreaParent">
+      <div id="scrollingTrack">
+        <div id="staffContainer"></div>
+        <div id="sweepLine" class="sweep-line"></div>
+      </div>
+      
+      <div id="feedbackHit" class="feedback-msg feedback-hit" style="left: 40px;">Perfect!</div>
+      <div id="feedbackMiss" class="feedback-msg feedback-miss" style="right: 40px;">Miss</div>
+
+      <!-- In-Game Mini Controls -->
+      <div id="gameControls" class="game-controls">
+        <button id="pauseBtn" class="control-btn">⏸️ Pause</button>
+        <button id="restartGameBtn" class="control-btn">🔄 Restart</button>
+        <button id="quitBtn" class="control-btn">🚪 Quit</button>
+      </div>
+
+      <!-- PAUSE OVERLAY -->
+      <div id="pauseOverlay" class="game-overlay">
+        <div class="setup-card" style="max-width: 300px; text-align: center;">
+          <h2 style="margin-bottom: 1.5rem; font-family: var(--font-display);">Paused</h2>
+          <button id="resumeBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;">▶️ Resume</button>
+          <button id="restartFromPauseBtn" class="btn btn-secondary" style="width: 100%; background: var(--bg-hover);">🔄 Restart</button>
+        </div>
+      </div>
+
+      <!-- SETUP OVERLAY -->
+      <div id="gameOverlay" class="game-overlay">
+        <div class="setup-card">
+          <h3 style="margin-bottom: 2rem; text-align: center; font-family: var(--font-display);">Game Settings</h3>
+          
+          <div class="config-grid">
+            <div class="config-item">
+              <label class="config-label">BPM</label>
+              <input type="number" id="bpmInput" class="input-field" value="80" min="40" max="200">
+            </div>
+            
+            <div class="config-item">
+              <label class="config-label">Key Signature</label>
+              <select id="keySigSelect" class="input-field">
+                <option value="C">C Major</option>
+                <option value="G">G Major (1#)</option>
+                <option value="D">D Major (2#)</option>
+                <option value="A">A Major (3#)</option>
+                <option value="F">F Major (1b)</option>
+                <option value="Bb">Bb Major (2b)</option>
+                <option value="Eb">Eb Major (3b)</option>
+              </select>
+            </div>
+
+            <div class="config-item">
+              <label class="config-label">Note Range</label>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <select id="lowLimitSelect" class="input-field" style="flex:1;">
+                  <option value="F#3">F#3 (Low)</option>
+                  <option value="G3">G3</option>
+                  <option value="C4" selected>C4</option>
+                </select>
+                <span>to</span>
+                <select id="highLimitSelect" class="input-field" style="flex:1;">
+                  <option value="C5">C5</option>
+                  <option value="G5" selected>G5 (High)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="config-item">
+              <label class="config-label">Durations</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" class="dur-check" value="q" checked> Q</label>
+                <label class="checkbox-item"><input type="checkbox" class="dur-check" value="h"> H</label>
+                <label class="checkbox-item"><input type="checkbox" class="dur-check" value="8"> 8th</label>
+              </div>
+            </div>
+
+            <div class="config-item" style="grid-column: span 2;">
+              <label class="config-label">Difficulty Toggles</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" id="restCheck"> Include Rests</label>
+                <label class="checkbox-item"><input type="checkbox" id="accidentalCheck"> Random Accidentals</label>
+              </div>
+            </div>
+          </div>
+
+          <button id="startGameBtn" class="btn btn-primary" style="width: 100%; padding: 1.2rem; font-size: 1.1rem;">🚀 Start Session</button>
+        </div>
+      </div>
+
+      <!-- RESULTS OVERLAY -->
+      <div id="resultsOverlay">
+        <h2 style="font-size: 3rem; margin-bottom: 1rem; font-family: var(--font-display);">Session Finished!</h2>
+        <div style="font-size: 2rem; margin-bottom: 2.5rem;">
+          Final Score: <span id="finalScore" style="color: var(--accent); font-weight: 800;">0</span>
+        </div>
+        <button id="restartBtn" class="btn btn-primary" style="padding: 1.2rem 4rem; font-size: 1.1rem;">🔄 Play Again</button>
+      </div>
+    </div>
+
+    <div class="controls-hint">
+      <div>
+        <div id="keyJ" class="key-cap">J</div>
+        <div class="valve-label">Valve 1</div>
+      </div>
+      <div>
+        <div id="keyK" class="key-cap">K</div>
+        <div class="valve-label">Valve 2</div>
+      </div>
+      <div>
+        <div id="keyL" class="key-cap">L</div>
+        <div class="valve-label">Valve 3</div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    Made with <span>♥</span> for brass musicians · ValveTrainer
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@3.0.9/releases/vexflow-min.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/sight-reading.js"></script>
+</body>
+</html>
