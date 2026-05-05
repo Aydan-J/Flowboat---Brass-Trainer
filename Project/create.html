@@ -59,6 +59,23 @@
         </select>
       </div>
 
+      <div class="toolbar-group">
+        <label>Key</label>
+        <select id="keySigSelect" class="pitch-select">
+          <option value="C">C Major</option>
+          <option value="G">G Major (1♯)</option>
+          <option value="D">D Major (2♯)</option>
+          <option value="A">A Major (3♯)</option>
+          <option value="E">E Major (4♯)</option>
+          <option value="B">B Major (5♯)</option>
+          <option value="F">F Major (1♭)</option>
+          <option value="Bb">B♭ Major (2♭)</option>
+          <option value="Eb">E♭ Major (3♭)</option>
+          <option value="Ab">A♭ Major (4♭)</option>
+          <option value="Db">D♭ Major (5♭)</option>
+        </select>
+      </div>
+
       <div class="toolbar-divider"></div>
 
       <!-- Note Durations -->
@@ -70,6 +87,9 @@
           <button class="tool-btn active-tool" data-duration="q">𝅘𝅥 Quarter</button>
           <button class="tool-btn" data-duration="8">𝅘𝅥𝅮 Eighth</button>
           <button class="tool-btn" data-duration="16">𝅘𝅥𝅯 Sixteenth</button>
+        </div>
+        <div class="btn-group" style="margin-top: 0.5rem;">
+          <button class="tool-btn" id="tripletToggleBtn">3️⃣ Triplet Mode</button>
         </div>
       </div>
 
@@ -92,7 +112,12 @@
       <div class="toolbar-group">
         <label>Action</label>
         <div class="btn-group">
-          <button class="tool-btn danger" id="deleteModeBtn">🗑️ Delete Mode</button>
+          <button class="tool-btn" id="addMeasureBtn">➕ Add Measure</button>
+          <button class="tool-btn" id="breakBeamBtn">✂️ Break Beam</button>
+          <button class="tool-btn" id="forceBeamBtn">🔗 Force Beam</button>
+          <button class="tool-btn" id="undoBtn" disabled>↩️ Undo</button>
+          <button class="tool-btn" id="redoBtn" disabled>↪️ Redo</button>
+          <button class="tool-btn danger" id="deleteModeBtn">🗑️ Delete</button>
           <button class="tool-btn" id="clearBtn">🧹 Clear All</button>
           <button class="tool-btn" id="exportPngBtn">🖼️ Export PNG</button>
         </div>
