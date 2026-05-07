@@ -32,16 +32,24 @@ let notesOnStaff = [];
 let activeValves = { 1: false, 2: false, 3: false };
 
 let startTime = 0;
-let pauseOffset = 0;
+let audioStartTime = 0;
 let animationId = null;
 let audioCtx = null;
 
-// The game evaluates when the line is within this range of the note center
-const EVAL_TOLERANCE = 15; // pixels
-const PIXELS_PER_MEASURE = 400;
-const BEATS_PER_MEASURE = 4;
+let metronomeEnabled = true;
+let countInEnabled = true;
+let lastBeatPlayed = -1;
+let countInActive = false;
+let trackBaseX = 100; // The X of the very first note
 
-// --- Initialize when DOM is ready ---
+const PIXELS_PER_BEAT = 100;
+const BEATS_PER_MEASURE = 4;
+const PIXELS_PER_MEASURE = PIXELS_PER_BEAT * BEATS_PER_MEASURE;
+const EVAL_TOLERANCE = 25;
+
+let currentNoteOsc = null;
+let currentNoteGain = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   const startGameBtn = document.getElementById('startGameBtn');
   const pauseBtn = document.getElementById('pauseBtn');
@@ -71,72 +79,90 @@ function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
 }
 
-function startGame() {
-  initAudio();
-  
-  const bpmInput = document.getElementById('bpmInput');
-  const keySigSelect = document.getElementById('keySigSelect');
-  const restCheck = document.getElementById('restCheck');
-  const accidentalCheck = document.getElementById('accidentalCheck');
-  const lowLimitSelect = document.getElementById('lowLimitSelect');
-  const highLimitSelect = document.getElementById('highLimitSelect');
-
-  bpm = parseInt(bpmInput.value) || 80;
-  keySignature = keySigSelect.value;
-  includeRests = restCheck.checked;
-  includeAccidentals = accidentalCheck.checked;
-  
-  allowedDurations = [];
-  document.querySelectorAll('.dur-check:checked').forEach(cb => allowedDurations.push(cb.value));
-  if (allowedDurations.length === 0) allowedDurations = ['q'];
-
-  const allNotes = Object.keys(FINGERINGS.trumpet);
-  const lowIdx = allNotes.indexOf(lowLimitSelect.value);
-  const highIdx = allNotes.indexOf(highLimitSelect.value);
-  noteRange = allNotes.slice(lowIdx, highIdx + 1);
-
-  document.getElementById('currentBpmDisplay').innerText = `${bpm} BPM`;
-  score = 0;
-  combo = 0;
-  updateStats();
-  
-  notesOnStaff = [];
-  document.getElementById('staffContainer').innerHTML = '';
-  
+async function startGame() {
+  const ctx = initAudio();
   try {
+    bpm = parseInt(document.getElementById('bpmInput').value) || 80;
+    keySignature = document.getElementById('keySigSelect').value;
+    includeRests = document.getElementById('restCheck').checked;
+    includeAccidentals = document.getElementById('accidentalCheck').checked;
+    metronomeEnabled = document.getElementById('metronomeCheck').checked;
+    countInEnabled = document.getElementById('countInCheck').checked;
+    
+    allowedDurations = [];
+    document.querySelectorAll('.dur-check:checked').forEach(cb => allowedDurations.push(cb.value));
+    if (allowedDurations.length === 0) allowedDurations = ['q'];
+
+    const allNotes = Object.keys(FINGERINGS.trumpet);
+    const lowIdx = allNotes.indexOf(document.getElementById('lowLimitSelect').value);
+    const highIdx = allNotes.indexOf(document.getElementById('highLimitSelect').value);
+    noteRange = allNotes.slice(lowIdx, highIdx + 1);
+
+    document.getElementById('currentBpmDisplay').innerText = `${bpm} BPM`;
+    score = 0; combo = 0; updateStats();
+    notesOnStaff = [];
+    document.getElementById('staffContainer').innerHTML = '';
+    
     generateTrack();
+    
+    // Set base X from first note
+    trackBaseX = notesOnStaff.length > 0 ? notesOnStaff[0].x : 100;
+
+    document.getElementById('gameOverlay').style.display = 'none';
+    document.getElementById('pauseOverlay').style.display = 'none';
+    document.getElementById('resultsOverlay').style.display = 'none';
+    document.getElementById('gameControls').style.display = 'flex';
+    
+    const sweepLine = document.getElementById('sweepLine');
+    sweepLine.style.display = 'block';
+    sweepLine.style.left = `${trackBaseX}px`; 
+    
+    document.getElementById('scrollingTrack').scrollLeft = 0;
+    
+    isPlaying = true; isPaused = false; countInActive = true; lastBeatPlayed = -1;
+    if (countInEnabled) await performCountIn();
+    
+    countInActive = false;
+    audioStartTime = ctx.currentTime;
+    startTime = performance.now();
+    
+    if (animationId) cancelAnimationFrame(animationId);
+    requestAnimationFrame(gameLoop);
   } catch (e) {
-    console.error("Critical Error during track generation:", e);
-    alert("Error generating notes. Please check your settings.");
-    return;
+    console.error("Sight reading failed to start:", e);
   }
-  
-  document.getElementById('gameOverlay').style.display = 'none';
-  document.getElementById('pauseOverlay').style.display = 'none';
-  document.getElementById('resultsOverlay').style.display = 'none';
-  document.getElementById('gameControls').style.display = 'flex';
-  
-  const sweepLine = document.getElementById('sweepLine');
-  sweepLine.style.display = 'block';
-  sweepLine.style.left = '0px';
-  
-  document.getElementById('scrollingTrack').scrollLeft = 0;
-  
-  isPlaying = true;
-  isPaused = false;
-  startTime = performance.now();
-  pauseOffset = 0;
-  
-  if (animationId) cancelAnimationFrame(animationId);
-  requestAnimationFrame(gameLoop);
+}
+
+function performCountIn() {
+  return new Promise(resolve => {
+    const beatMs = (60 / bpm) * 1000;
+    let beats = 0;
+    const interval = setInterval(() => {
+      playMetronomeTick(beats === 0);
+      beats++;
+      if (beats >= 4) { clearInterval(interval); setTimeout(resolve, beatMs); }
+    }, beatMs);
+  });
+}
+
+function playMetronomeTick(isStrong) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.frequency.value = isStrong ? 1200 : 800;
+  gain.gain.setValueAtTime(0.1, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.1);
 }
 
 function pauseGame() {
   if (!isPlaying || isPaused) return;
-  isPaused = true;
-  pauseOffset = performance.now() - startTime;
+  isPaused = true; stopNoteSound();
   document.getElementById('pauseOverlay').style.display = 'flex';
   cancelAnimationFrame(animationId);
 }
@@ -144,8 +170,9 @@ function pauseGame() {
 function resumeGame() {
   if (!isPaused) return;
   isPaused = false;
-  startTime = performance.now() - pauseOffset;
   document.getElementById('pauseOverlay').style.display = 'none';
+  const currentPos = (parseFloat(document.getElementById('sweepLine').style.left) - trackBaseX) / PIXELS_PER_BEAT;
+  audioStartTime = audioCtx.currentTime - (currentPos * (60/bpm));
   requestAnimationFrame(gameLoop);
 }
 
@@ -157,303 +184,211 @@ function updateStats() {
 function generateTrack() {
   const VF = Vex.Flow;
   const numMeasures = 12;
-  const totalWidth = numMeasures * PIXELS_PER_MEASURE + 600;
-  
-  const staffContainer = document.getElementById('staffContainer');
-  const renderer = new VF.Renderer(staffContainer, VF.Renderer.Backends.SVG);
+  const totalWidth = numMeasures * PIXELS_PER_MEASURE + 800;
+  const container = document.getElementById('staffContainer');
+  const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
   renderer.resize(totalWidth, 300);
   const context = renderer.getContext();
   
-  let xOffset = 50;
-  
-  let filteredRange = includeAccidentals 
-    ? noteRange 
-    : noteRange.filter(n => !n.includes('#') && !n.includes('b'));
-  
-  if (filteredRange.length === 0) {
-    filteredRange = noteRange; 
-  }
+  let xOffset = 100;
+  const DUR_VALS = { 'w': 4, 'h': 2, 'q': 1, '8': 0.5 };
+  let filteredRange = includeAccidentals ? noteRange : noteRange.filter(n => !n.includes('#') && !n.includes('b'));
+  if (filteredRange.length === 0) filteredRange = noteRange; 
 
   for (let m = 0; m < numMeasures; m++) {
     const stave = new VF.Stave(xOffset, 40, PIXELS_PER_MEASURE);
-    if (m === 0) {
-      stave.addClef('treble').addTimeSignature('4/4').addKeySignature(keySignature);
-    }
+    if (m === 0) stave.addClef('treble').addTimeSignature('4/4').addKeySignature(keySignature);
     if (m === numMeasures - 1) stave.setEndBarType(VF.Barline.type.END);
     stave.setContext(context).draw();
     
-    const measureNotesData = [];
-    let currentBeats = 0;
-    const DUR_VALS = { 'w': 4, 'h': 2, 'q': 1, '8': 0.5 };
-    
-    while (currentBeats < 4) {
+    const vfNotes = [];
+    const measureData = [];
+    let curB = 0;
+    while (curB < 4) {
       let dur = allowedDurations[Math.floor(Math.random() * allowedDurations.length)];
-      if (currentBeats + DUR_VALS[dur] > 4) {
-        if (currentBeats + 1 <= 4) dur = 'q';
-        else if (currentBeats + 0.5 <= 4) dur = '8';
+      if (curB + DUR_VALS[dur] > 4) {
+        if (curB + 1 <= 4) dur = 'q';
+        else if (curB + 0.5 <= 4) dur = '8';
         else break;
       }
-      
       const isRest = includeRests && Math.random() < 0.15;
-      if (isRest) {
-        const rest = new VF.StaveNote({ keys: ["b/4"], duration: dur + "r" });
-        measureNotesData.push({ vfNote: rest, isRest: true, duration: dur });
-      } else {
-        const noteName = filteredRange[Math.floor(Math.random() * filteredRange.length)];
-        const match = noteName.match(/^([A-G])([b#]?)([0-9])$/);
-        const baseKey = match[1];
-        const baseAccidental = match[2];
-        const octave = match[3];
-        
-        const vfKey = `${baseKey.toLowerCase()}/${octave}`;
-        const note = new VF.StaveNote({ keys: [vfKey], duration: dur });
-        
-        let effectiveAcc = 'none';
-        const keyAcc = KEY_ACCIDENTALS[keySignature][baseKey.toUpperCase()] || 'none';
-        
-        if (baseAccidental) {
-          effectiveAcc = baseAccidental;
-          if (baseAccidental !== keyAcc) note.addAccidental(0, new VF.Accidental(baseAccidental));
-        } else {
-          effectiveAcc = keyAcc;
-        }
-        
-        const noteId = `note-${notesOnStaff.length + measureNotesData.length}`;
-        measureNotesData.push({
-          vfNote: note,
-          isRest: false,
-          fingering: FINGERINGS.trumpet[noteName][0],
-          noteName: noteName,
-          pitchStr: vfKey,
-          accidental: effectiveAcc,
-          id: noteId
-        });
+      const noteName = filteredRange[Math.floor(Math.random() * filteredRange.length)];
+      const match = noteName.match(/^([A-G])([b#]?)([0-9])$/);
+      const vfKey = `${match[1].toLowerCase()}/${match[3]}`;
+      const note = new VF.StaveNote({ keys: [vfKey], duration: isRest ? dur + "r" : dur });
+      if (!isRest) {
+        const keyAcc = KEY_ACCIDENTALS[keySignature][match[1].toUpperCase()] || 'none';
+        if (match[2] && match[2] !== keyAcc) note.addAccidental(0, new VF.Accidental(match[2]));
       }
-      currentBeats += DUR_VALS[dur];
+      const nid = `note-${notesOnStaff.length + vfNotes.length}`;
+      vfNotes.push(note);
+      measureData.push({ id: nid, dur, isRest, pitch: vfKey, acc: match[2] || 'none', fingering: FINGERINGS.trumpet[noteName][0] });
+      curB += DUR_VALS[dur];
     }
     
-    const vfTickables = measureNotesData.map(n => n.vfNote);
-    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-    voice.addTickables(vfTickables);
+    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 }).addTickables(vfNotes);
+    new VF.Formatter().joinVoices([voice]).format([voice], PIXELS_PER_MEASURE - (m === 0 ? 100 : 20));
     
-    new VF.Formatter().joinVoices([voice]).format([voice], PIXELS_PER_MEASURE - (m === 0 ? 120 : 50));
-    
-    measureNotesData.forEach((noteData) => {
-      noteData.vfNote.setStave(stave).setContext(context);
-      if (!noteData.isRest) {
-        context.openGroup(noteData.id, "vf-note-group");
-        noteData.vfNote.draw();
+    let subB = 0;
+    vfNotes.forEach((note, i) => {
+      const d = measureData[i];
+      // FORCE LINEAR SPACING
+      if (note.getTickContext()) {
+          // In VexFlow 3.x, TickContext X is relative to the internal formatting origin.
+          // For measure 0, the clef/time signature push the origin forward.
+          // We'll set the X and then capture the absolute rendered X.
+          note.getTickContext().setX(subB * PIXELS_PER_BEAT);
+      }
+      note.setStave(stave).setContext(context);
+      
+      if (!d.isRest) {
+        context.openGroup(d.id, "vf-note-group");
+        note.draw();
         context.closeGroup();
         
+        // Capture ACTUAL absolute X after drawing
+        const actualX = note.getAbsoluteX();
         notesOnStaff.push({
-          id: noteData.id,
-          x: noteData.vfNote.getAbsoluteX(),
-          fingering: noteData.fingering,
-          hit: false,
-          processed: false,
-          pitchStr: noteData.pitchStr,
-          accidental: noteData.accidental
+          id: d.id,
+          x: actualX,
+          durationPixels: DUR_VALS[d.dur] * PIXELS_PER_BEAT,
+          fingering: d.fingering,
+          hit: false, processed: false, active: false, soundTriggered: false,
+          pitchStr: d.pitch, accidental: d.acc
         });
+        createHoldVisual(d.id);
       } else {
-        noteData.vfNote.draw();
+        note.draw();
       }
+      subB += DUR_VALS[d.dur];
     });
-    
     xOffset += PIXELS_PER_MEASURE;
   }
 }
 
+function createHoldVisual(noteId) {
+  const el = document.getElementById(noteId);
+  if (!el) return;
+  const paths = el.querySelectorAll('path');
+  if (paths.length === 0) return;
+  const noteHead = paths[0];
+  const bbox = noteHead.getBBox();
+  const ns = "http://www.w3.org/2000/svg";
+  const circle = document.createElementNS(ns, "circle");
+  const r = 24;
+  circle.setAttribute("cx", bbox.x + bbox.width / 2);
+  circle.setAttribute("cy", bbox.y + bbox.height / 2);
+  circle.setAttribute("r", r);
+  circle.setAttribute("class", "hold-circle");
+  circle.id = `${noteId}-circle`;
+  circle.style.stroke = "var(--accent)";
+  circle.style.strokeWidth = "4px";
+  circle.style.fill = "none";
+  circle.style.pointerEvents = "none";
+  const circumference = 2 * Math.PI * r;
+  circle.style.strokeDasharray = circumference;
+  circle.style.strokeDashoffset = circumference;
+  circle.style.opacity = "0";
+  el.appendChild(circle);
+}
+
+function updateHoldVisual(note, progress) {
+  const circle = document.getElementById(`${note.id}-circle`);
+  if (!circle) return;
+  const circumference = 2 * Math.PI * 24;
+  circle.style.strokeDashoffset = circumference * (1 - progress);
+  circle.style.opacity = progress > 0 ? "1" : "0";
+}
+
+function finalizeHoldVisual(note, success) {
+  const circle = document.getElementById(`${note.id}-circle`);
+  if (!circle) return;
+  if (success) { circle.classList.add('success'); circle.style.strokeDashoffset = 0; circle.style.stroke = "#10b981"; circle.style.opacity = "1"; }
+  else { circle.classList.add('failed'); circle.style.opacity = "0"; }
+}
+
 function gameLoop(timestamp) {
-  if (!isPlaying || isPaused) return;
-  
-  const elapsed = timestamp - startTime;
-  const beatDuration = (60 / bpm) * 1000;
-  const measureDuration = beatDuration * BEATS_PER_MEASURE;
-  
-  const pixelsPerMs = PIXELS_PER_MEASURE / measureDuration;
-  const currentX = 50 + (elapsed * pixelsPerMs);
-  
+  if (!isPlaying || isPaused || countInActive) return;
+  const currentTime = audioCtx.currentTime;
+  const elapsedAudio = currentTime - audioStartTime;
+  if (elapsedAudio < 0) { animationId = requestAnimationFrame(gameLoop); return; }
+  const beatDuration = 60 / bpm;
+  const currentBeat = elapsedAudio / beatDuration;
+  if (metronomeEnabled) {
+    const floorBeat = Math.floor(currentBeat);
+    if (floorBeat > lastBeatPlayed) { playMetronomeTick(floorBeat % BEATS_PER_MEASURE === 0); lastBeatPlayed = floorBeat; }
+  }
+  const currentX = trackBaseX + (currentBeat * PIXELS_PER_BEAT);
   document.getElementById('sweepLine').style.left = `${currentX}px`;
   
   const currentFingering = getPressedFingering();
-  
-  notesOnStaff.forEach(note => {
-    if (!note.processed) {
-      // Logic: Evaluation point is when currentX JUST crosses note.x
-      if (currentX >= note.x) {
-         if (currentFingering === note.fingering) {
-            note.hit = true;
-            note.processed = true;
-            handleHit(note);
-         } else {
-            // Give a TINY window (EVAL_TOLERANCE) to catch it if they were frame-perfect
-            // Otherwise, it's a miss
-            if (currentX > note.x + EVAL_TOLERANCE) {
-               note.processed = true;
-               handleMiss(note);
-            }
-         }
+  notesOnStaff.forEach((note, index) => {
+    if (note.processed) return;
+    const nextNote = notesOnStaff[index + 1];
+    const holdEnd = nextNote ? nextNote.x : note.x + note.durationPixels;
+    if (currentX >= note.x - EVAL_TOLERANCE) {
+      if (!note.active) note.active = true;
+      if (currentFingering === note.fingering) {
+        const progress = Math.min(1, (currentX - note.x) / (holdEnd - note.x));
+        updateHoldVisual(note, progress);
+        if (currentX >= note.x) startNoteSound(note.pitchStr, note.accidental);
+        if (currentX >= holdEnd - EVAL_TOLERANCE) { note.processed = true; note.hit = true; handleHit(note); finalizeHoldVisual(note, true); stopNoteSound(); }
+      } else {
+        if (currentX > note.x + EVAL_TOLERANCE) { note.processed = true; handleMiss(note); finalizeHoldVisual(note, false); stopNoteSound(); }
+        else { stopNoteSound(); updateHoldVisual(note, 0); }
       }
     }
   });
-  
-  const lastNote = notesOnStaff[notesOnStaff.length - 1];
-  if (lastNote && currentX > lastNote.x + 300) {
-    endGame();
-    return;
-  }
-  
-  const scrollingTrack = document.getElementById('scrollingTrack');
-  if (currentX > scrollingTrack.clientWidth * 0.6) {
-    scrollingTrack.scrollLeft = currentX - scrollingTrack.clientWidth * 0.4;
-  }
-  
+  const totalMeasuresWidth = 12 * PIXELS_PER_MEASURE;
+  if (currentX > trackBaseX + totalMeasuresWidth + 200) { endGame(); return; }
+  const scroll = document.getElementById('scrollingTrack');
+  if (currentX > scroll.clientWidth * 0.6) scroll.scrollLeft = currentX - scroll.clientWidth * 0.4;
   animationId = requestAnimationFrame(gameLoop);
 }
 
-function getPressedFingering() {
-  let pressed = [];
-  if (activeValves[1]) pressed.push("1");
-  if (activeValves[2]) pressed.push("2");
-  if (activeValves[3]) pressed.push("3");
-  if (pressed.length === 0) return "0";
-  return pressed.join("");
-}
-
-function handleHit(note) {
-  score += 100 + (combo * 10);
-  combo++;
-  updateStats();
-  triggerFeedback(true);
-  playNoteSample(note.pitchStr, note.accidental);
-  highlightNote(note.id, "#10b981"); 
-}
-
-function handleMiss(note) {
-  combo = 0;
-  updateStats();
-  triggerFeedback(false);
-  highlightNote(note.id, "#ef4444"); 
-}
-
-function highlightNote(noteId, color) {
-  const el = document.getElementById(noteId);
-  if (el) {
-    const paths = el.querySelectorAll('path');
-    paths.forEach(p => {
-      p.setAttribute('fill', color);
-      p.setAttribute('stroke', color);
-    });
-  }
-}
-
-function triggerFeedback(isHit) {
-  const el = isHit ? document.getElementById('feedbackHit') : document.getElementById('feedbackMiss');
-  const other = isHit ? document.getElementById('feedbackMiss') : document.getElementById('feedbackHit');
-  
-  other.classList.remove('feedback-active');
-  el.classList.add('feedback-active');
-  
-  clearTimeout(el.timer);
-  el.timer = setTimeout(() => el.classList.remove('feedback-active'), 600);
-}
-
-function endGame() {
-  isPlaying = false;
-  document.getElementById('gameControls').style.display = 'none';
-  if (animationId) cancelAnimationFrame(animationId);
-  document.getElementById('resultsOverlay').style.display = 'flex';
-  document.getElementById('finalScore').innerText = score;
-}
-
-function playNoteSample(pitchStr, accidental) {
-  if (!audioCtx) return;
-  scheduleTrumpetNote(pitchStr, accidental, audioCtx.currentTime, 0.4);
-}
-
-function scheduleTrumpetNote(pitchStr, acc, time, duration) {
-  const parts = pitchStr.split('/');
+function startNoteSound(pitch, acc) {
+  if (!audioCtx || currentNoteOsc) return;
+  const parts = pitch.split('/');
   let step = parts[0].toUpperCase();
   const oct = parseInt(parts[1], 10);
   if (acc === 'b') step += 'b';
   if (acc === '#') step += '#';
   const freq = getFreq(step, oct);
-  
-  const osc = audioCtx.createOscillator();
+  currentNoteOsc = audioCtx.createOscillator();
+  currentNoteGain = audioCtx.createGain();
   const filter = audioCtx.createBiquadFilter();
-  const gain = audioCtx.createGain();
-  const vibrato = audioCtx.createOscillator();
-  const vibratoGain = audioCtx.createGain();
-  
-  osc.type = 'sawtooth';
-  osc.frequency.value = freq;
-  vibrato.frequency.value = 5.5; 
-  vibratoGain.gain.value = freq * 0.015;
-  vibrato.connect(vibratoGain);
-  vibratoGain.connect(osc.detune);
-  
+  currentNoteOsc.type = 'sawtooth';
+  currentNoteOsc.frequency.value = freq;
   filter.type = 'lowpass';
-  filter.Q.value = 2;
-  filter.frequency.setValueAtTime(freq, time);
-  filter.frequency.exponentialRampToValueAtTime(Math.min(freq * 6, 8000), time + 0.05);
-  filter.frequency.exponentialRampToValueAtTime(freq * 1.5, time + duration);
-  
-  gain.gain.setValueAtTime(0, time);
-  gain.gain.linearRampToValueAtTime(0.7, time + 0.03);
-  gain.gain.setValueAtTime(0.7, time + duration - 0.05);
-  gain.gain.linearRampToValueAtTime(0, time + duration);
-  
-  osc.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-  
-  osc.start(time);
-  vibrato.start(time + 0.2); 
-  osc.stop(time + duration);
-  vibrato.stop(time + duration);
+  filter.frequency.value = freq * 3;
+  currentNoteGain.gain.setValueAtTime(0, audioCtx.currentTime);
+  currentNoteGain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+  currentNoteOsc.connect(filter); filter.connect(currentNoteGain); currentNoteGain.connect(audioCtx.destination);
+  currentNoteOsc.start();
 }
 
-function getFreq(step, octave) {
-  const notes = { 'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4, 'F':5, 'F#':6, 'GB':6, 'G':7, 'G#':8, 'AB':8, 'A':9, 'A#':10, 'BB':10, 'B':11 };
-  const midi = notes[step.toUpperCase()] + (octave + 1) * 12;
-  return 440 * Math.pow(2, (midi - 69) / 12);
-}
-
-// --- Input Handling ---
-window.addEventListener('keydown', (e) => {
-  if (document.activeElement.tagName === 'INPUT') return;
-  const key = e.key.toLowerCase();
-  if (key === 'j') { activeValves[1] = true; updateKeyVisual('keyJ', true); }
-  if (key === 'k') { activeValves[2] = true; updateKeyVisual('keyK', true); }
-  if (key === 'l') { activeValves[3] = true; updateKeyVisual('keyL', true); }
-  if (key === 'p') pauseGame();
-});
-
-window.addEventListener('keyup', (e) => {
-  if (document.activeElement.tagName === 'INPUT') return;
-  const key = e.key.toLowerCase();
-  if (key === 'j') { activeValves[1] = false; updateKeyVisual('keyJ', false); }
-  if (key === 'k') { activeValves[2] = false; updateKeyVisual('keyK', false); }
-  if (key === 'l') { activeValves[3] = false; updateKeyVisual('keyL', false); }
-});
-
-function updateKeyVisual(id, active) {
-  const el = document.getElementById(id);
-  if (el) {
-    if (active) el.classList.add('active');
-    else el.classList.remove('active');
-  }
-
-  // Also update the visual valve display
-  if (id === 'keyJ') updateVisualValve(1, active);
-  if (id === 'keyK') updateVisualValve(2, active);
-  if (id === 'keyL') updateVisualValve(3, active);
-}
-
-function updateVisualValve(num, active) {
-  const el = document.getElementById(`visualValve${num}`);
-  if (el) {
-    if (active) el.classList.add('active');
-    else el.classList.remove('active');
+function stopNoteSound() {
+  if (currentNoteOsc) {
+    const t = audioCtx.currentTime;
+    currentNoteGain.gain.cancelScheduledValues(t);
+    currentNoteGain.gain.setValueAtTime(currentNoteGain.gain.value, t);
+    currentNoteGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    currentNoteOsc.stop(t + 0.05);
+    currentNoteOsc = null; currentNoteGain = null;
   }
 }
+
+function getPressedFingering() {
+  let p = []; if (activeValves[1]) p.push("1"); if (activeValves[2]) p.push("2"); if (activeValves[3]) p.push("3");
+  return p.length === 0 ? "0" : p.join("");
+}
+function handleHit(note) { score += 100 + (combo * 10); combo++; updateStats(); triggerFeedback(true); highlightNote(note.id, "#10b981"); }
+function handleMiss(note) { combo = 0; updateStats(); triggerFeedback(false); highlightNote(note.id, "#ef4444"); }
+function highlightNote(noteId, color) { const el = document.getElementById(noteId); if (el) el.querySelectorAll('path').forEach(p => { p.setAttribute('fill', color); p.setAttribute('stroke', color); }); }
+function triggerFeedback(isHit) { const el = isHit ? document.getElementById('feedbackHit') : document.getElementById('feedbackMiss'); if (el) { el.classList.add('feedback-active'); setTimeout(() => el.classList.remove('feedback-active'), 600); } }
+function endGame() { isPlaying = false; stopNoteSound(); document.getElementById('gameControls').style.display = 'none'; if (animationId) cancelAnimationFrame(animationId); document.getElementById('resultsOverlay').style.display = 'flex'; document.getElementById('finalScore').innerText = score; }
+function getFreq(step, octave) { const notes = { 'C':0, 'C#':1, 'DB':1, 'D':2, 'D#':3, 'EB':3, 'E':4, 'F':5, 'F#':6, 'GB':6, 'G':7, 'G#':8, 'AB':8, 'A':9, 'A#':10, 'BB':10, 'B':11 }; const midi = notes[step.toUpperCase()] + (octave + 1) * 12; return 440 * Math.pow(2, (midi - 69) / 12); }
+window.addEventListener('keydown', (e) => { if (document.activeElement.tagName === 'INPUT') return; const key = e.key.toLowerCase(); if (key === 'j') { activeValves[1] = true; updateKeyVisual('keyJ', true); } if (key === 'k') { activeValves[2] = true; updateKeyVisual('keyK', true); } if (key === 'l') { activeValves[3] = true; updateKeyVisual('keyL', true); } if (key === 'p') pauseGame(); });
+window.addEventListener('keyup', (e) => { if (document.activeElement.tagName === 'INPUT') return; const key = e.key.toLowerCase(); if (key === 'j') { activeValves[1] = false; updateKeyVisual('keyJ', false); } if (key === 'k') { activeValves[2] = false; updateKeyVisual('keyK', false); } if (key === 'l') { activeValves[3] = false; updateKeyVisual('keyL', false); } });
+function updateKeyVisual(id, active) { const el = document.getElementById(id); if (el) active ? el.classList.add('active') : el.classList.remove('active'); if (id === 'keyJ') updateVisualValve(1, active); if (id === 'keyK') updateVisualValve(2, active); if (id === 'keyL') updateVisualValve(3, active); }
+function updateVisualValve(num, active) { const el = document.getElementById(`visualValve${num}`); if (el) active ? el.classList.add('active') : el.classList.remove('active'); }

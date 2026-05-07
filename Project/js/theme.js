@@ -3,20 +3,22 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const body = document.body;
-  const navLinks = document.querySelector('.nav-links');
+  
+  // Create theme toggle container if it doesn't exist
+  let themeContainer = document.querySelector('.theme-toggle-container');
+  if (!themeContainer) {
+    themeContainer = document.createElement('div');
+    themeContainer.className = 'theme-toggle-container';
+    body.appendChild(themeContainer);
+  }
   
   // Create toggle button
-  const toggleBtn = document.createElement('li');
-  toggleBtn.innerHTML = `
-    <button id="themeToggle" class="nav-link" style="background:none; border:none; cursor:pointer; color:inherit; font-size: 1.2rem; display:flex; align-items:center; justify-content:center; padding: 7px 15px;">
+  themeContainer.innerHTML = `
+    <button id="themeToggle" title="Toggle Light/Dark Mode">
       <span id="themeIcon">🌙</span>
     </button>
   `;
   
-  if (navLinks) {
-    navLinks.appendChild(toggleBtn);
-  }
-
   const themeToggle = document.getElementById('themeToggle');
   const themeIcon = document.getElementById('themeIcon');
 
