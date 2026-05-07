@@ -187,6 +187,27 @@
       transition: var(--transition);
     }
 
+    /* Hold Circle Styles */
+    .hold-circle {
+      fill: none;
+      stroke: #3b82f6; /* Blue */
+      stroke-width: 4;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: center;
+      transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
+      pointer-events: none;
+    }
+
+    .hold-circle.success {
+      stroke: #10b981; /* Green */
+    }
+
+    .hold-circle.failed {
+      stroke: #ef4444; /* Red */
+      opacity: 0;
+    }
+
     .control-btn:hover {
       background: var(--bg-hover);
       border-color: var(--accent);
@@ -201,20 +222,25 @@
 
 <body>
 
-  <nav class="navbar">
+  <!-- TOP BAR -->
+  <header class="top-bar">
     <div class="nav-brand">
       <span class="brand-icon">🎺</span>
-      Valve<span>Trainer</span>
+      <span class="brand-text">Valve<span>Trainer</span></span>
     </div>
+  </header>
+
+  <!-- SIDEBAR NAV -->
+  <nav class="navbar">
     <ul class="nav-links">
-      <li><a href="index.html">🏠 Home</a></li>
-      <li><a href="practice.html">🎵 Practice</a></li>
-      <li><a href="progress.html">📈 Progress</a></li>
-      <li><a href="feedback.html">📝 Notes</a></li>
-      <li><a href="pitch.html">🎯 Pitch</a></li>
-      <li><a href="keys.html">🎹 Keys</a></li>
-      <li><a href="games.html" class="active">🎮 Games</a></li>
-      <li><a href="create.html">✍️ Create</a></li>
+      <li><a href="index.html"><span class="link-emoji">🏠</span><span class="link-text">Home</span></a></li>
+      <li><a href="practice.html"><span class="link-emoji">🎵</span><span class="link-text">Practice</span></a></li>
+      <li><a href="progress.html"><span class="link-emoji">📈</span><span class="link-text">Progress</span></a></li>
+      <li><a href="feedback.html"><span class="link-emoji">📝</span><span class="link-text">Notes</span></a></li>
+      <li><a href="pitch.html"><span class="link-emoji">🎯</span><span class="link-text">Pitch</span></a></li>
+      <li><a href="keys.html"><span class="link-emoji">🎹</span><span class="link-text">Keys</span></a></li>
+      <li><a href="games.html" class="active"><span class="link-emoji">🎮</span><span class="link-text">Games</span></a></li>
+      <li><a href="create.html"><span class="link-emoji">✍️</span><span class="link-text">Create</span></a></li>
     </ul>
   </nav>
 
@@ -315,10 +341,12 @@
             </div>
 
             <div class="config-item" style="grid-column: span 2;">
-              <label class="config-label">Difficulty Toggles</label>
-              <div class="checkbox-group">
+              <label class="config-label">Difficulty & Metronome</label>
+              <div class="checkbox-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label class="checkbox-item"><input type="checkbox" id="restCheck"> Include Rests</label>
                 <label class="checkbox-item"><input type="checkbox" id="accidentalCheck"> Random Accidentals</label>
+                <label class="checkbox-item"><input type="checkbox" id="metronomeCheck" checked> Metronome Play</label>
+                <label class="checkbox-item"><input type="checkbox" id="countInCheck" checked> 4-Beat Count-in</label>
               </div>
             </div>
           </div>

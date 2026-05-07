@@ -9,21 +9,25 @@
 </head>
 <body>
 
-  <!-- NAV -->
-  <nav class="navbar">
+  <!-- TOP BAR -->
+  <header class="top-bar">
     <div class="nav-brand">
       <span class="brand-icon">🎺</span>
-      Valve<span>Trainer</span>
+      <span class="brand-text">Valve<span>Trainer</span></span>
     </div>
+  </header>
+
+  <!-- SIDEBAR NAV -->
+  <nav class="navbar">
     <ul class="nav-links">
-      <li><a href="index.html">🏠 Home</a></li>
-      <li><a href="practice.html">🎵 Practice</a></li>
-      <li><a href="progress.html" class="active">📈 Progress</a></li>
-      <li><a href="feedback.html">📝 Notes</a></li>
-      <li><a href="pitch.html">🎯 Pitch</a></li>
-      <li><a href="keys.html">🎹 Keys</a></li>
-      <li><a href="games.html">🎮 Games</a></li>
-      <li><a href="create.html">✍️ Create</a></li>
+      <li><a href="index.html"><span class="link-emoji">🏠</span><span class="link-text">Home</span></a></li>
+      <li><a href="practice.html"><span class="link-emoji">🎵</span><span class="link-text">Practice</span></a></li>
+      <li><a href="progress.html" class="active"><span class="link-emoji">📈</span><span class="link-text">Progress</span></a></li>
+      <li><a href="feedback.html"><span class="link-emoji">📝</span><span class="link-text">Notes</span></a></li>
+      <li><a href="pitch.html"><span class="link-emoji">🎯</span><span class="link-text">Pitch</span></a></li>
+      <li><a href="keys.html"><span class="link-emoji">🎹</span><span class="link-text">Keys</span></a></li>
+      <li><a href="games.html"><span class="link-emoji">🎮</span><span class="link-text">Games</span></a></li>
+      <li><a href="create.html"><span class="link-emoji">✍️</span><span class="link-text">Create</span></a></li>
     </ul>
   </nav>
 
@@ -69,5 +73,6 @@
 
   <div class="toast" id="toast"></div>
   <script src="js/progress.js"></script>
+  <script src="js/theme.js"></script>
 </body>
 </html>
